@@ -61,7 +61,7 @@ echo "[5/6] Configuring Nginx..."
 sudo cp "$RAYDOT_HOME/frontend/admin/nginx.conf" /etc/nginx/sites-available/raydot
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo ln -sf /etc/nginx/sites-available/raydot /etc/nginx/sites-enabled/
-sed -i "s|/home/pi/raydot|$RAYDOT_HOME|g" /etc/nginx/sites-available/raydot
+sudo sed -i "s|/home/pi/raydot|$RAYDOT_HOME|g" /etc/nginx/sites-available/raydot
 sudo nginx -t && sudo systemctl restart nginx
 
 # Setup kiosk autostart
