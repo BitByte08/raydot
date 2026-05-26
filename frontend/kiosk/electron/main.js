@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
+const fs = require('fs')
 const { exec } = require('child_process')
 
 let mainWindow = null
@@ -19,12 +20,12 @@ function createWindow() {
     },
   })
 
-  // In development, load Vite dev server
-  const isDev = process.env.NODE_ENV !== 'production'
-  if (isDev) {
-    mainWindow.loadURL('http://localhost:3000')
+  // Prefer built dist, fall back to dev server
+  const distPath = path.join(__dirname, '../dist/index.html')
+  if (fs.existsSync(distPath)) {
+    mainWindow.loadFile(distPath)
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+    mainWindow.loadURL('http://localhost:3000')
   }
 
   mainWindow.on('closed', () => { mainWindow = null })

@@ -66,6 +66,26 @@ sudo nginx -t && sudo systemctl restart nginx
 
 # Setup kiosk autostart
 echo "[6/6] Configuring kiosk autostart..."
+
+# Method 1: XDG autostart (works on LXDE, XFCE, GNOME, Wayfire via lxqt-panel)
+mkdir -p "$HOME/.config/autostart"
+cat > "$HOME/.config/autostart/raydot-kiosk.desktop" << EOF
+[Desktop Entry]
+Type=Application
+Name=Raydot Kiosk
+Exec=bash -c "cd $RAYDOT_HOME/frontend/kiosk && npx electron ."
+X-GNOME-Autostart-enabled=true
+EOF
+
+# Method 2: Wayfire autostart (RPi OS Bookworm default)
+if [ -f "$HOME/.config/wayfire.ini" ]; then
+    if ! grep -q "raydot" "$HOME/.config/wayfire.ini" 2>/dev/null; then
+        echo "[autostart]" >> "$HOME/.config/wayfire.ini"
+        echo "raydot = bash -c 'cd $RAYDOT_HOME/frontend/kiosk && npx electron .'" >> "$HOME/.config/wayfire.ini"
+    fi
+fi
+
+# Method 3: LXDE-pi (older RPi OS)
 mkdir -p "$HOME/.config/lxsession/LXDE-pi"
 cat > "$HOME/.config/lxsession/LXDE-pi/autostart" << EOF
 @xset s off
@@ -73,6 +93,8 @@ cat > "$HOME/.config/lxsession/LXDE-pi/autostart" << EOF
 @xset s noblank
 @cd $RAYDOT_HOME/frontend/kiosk && npx electron .
 EOF
+
+echo "Kiosk will auto-start on next GUI login."
 
 echo ""
 echo "=== Installation complete ==="
