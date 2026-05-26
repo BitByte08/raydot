@@ -14,7 +14,7 @@ echo ""
 # Install system dependencies
 echo "[1/6] Installing system packages..."
 sudo apt-get update -qq
-sudo apt-get install -y -qq python3 python3-pip python3-venv nodejs npm nginx mosquitto mosquitto-clients
+sudo apt-get install -y -qq python3 python3-pip python3-venv nodejs npm nginx mosquitto mosquitto-clients fonts-noto-cjk
 
 # Setup Mosquitto
 echo "[2/6] Configuring MQTT broker..."

@@ -1,7 +1,10 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { exec } = require('child_process')
+
+// Disable GPU acceleration on RPi (fixes GBM/DRM errors)
+app.disableHardwareAcceleration()
 
 let mainWindow = null
 
@@ -97,7 +100,11 @@ ipcMain.handle('get-ip', () => {
 })
 
 // App lifecycle
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  createWindow()
+  // Ctrl+Q to quit kiosk
+  globalShortcut.register('CommandOrControl+Q', () => app.quit())
+})
 
 app.on('window-all-closed', () => {
   app.quit()
