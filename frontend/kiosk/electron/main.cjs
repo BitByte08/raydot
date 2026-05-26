@@ -15,9 +15,10 @@ function createWindow() {
     width: 800,
     height: 480,
     fullscreen: true,
-    kiosk: true,
     frame: false,
     resizable: false,
+    // kiosk: true blocks OS on-screen keyboard — keep it disabled
+    alwaysOnTop: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

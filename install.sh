@@ -14,7 +14,7 @@ echo ""
 # Install system dependencies
 echo "[1/6] Installing system packages..."
 sudo apt-get update -qq
-sudo apt-get install -y -qq python3 python3-pip python3-venv nodejs npm nginx mosquitto mosquitto-clients fonts-noto-cjk
+sudo apt-get install -y -qq python3 python3-pip python3-venv nodejs npm nginx mosquitto mosquitto-clients fonts-noto-cjk onboard
 
 # Setup Mosquitto
 echo "[2/6] Configuring MQTT broker..."
@@ -73,7 +73,7 @@ cat > "$HOME/.config/autostart/raydot-kiosk.desktop" << EOF
 [Desktop Entry]
 Type=Application
 Name=Raydot Kiosk
-Exec=bash -c "cd $RAYDOT_HOME/frontend/kiosk && npx electron ."
+Exec=bash -c "onboard & sleep 1; cd $RAYDOT_HOME/frontend/kiosk && npx electron ."
 X-GNOME-Autostart-enabled=true
 EOF
 
@@ -81,7 +81,7 @@ EOF
 if [ -f "$HOME/.config/wayfire.ini" ]; then
     if ! grep -q "raydot" "$HOME/.config/wayfire.ini" 2>/dev/null; then
         echo "[autostart]" >> "$HOME/.config/wayfire.ini"
-        echo "raydot = bash -c 'cd $RAYDOT_HOME/frontend/kiosk && npx electron .'" >> "$HOME/.config/wayfire.ini"
+        echo "raydot = bash -c 'onboard & sleep 1; cd $RAYDOT_HOME/frontend/kiosk && npx electron .'" >> "$HOME/.config/wayfire.ini"
     fi
 fi
 
@@ -91,6 +91,7 @@ cat > "$HOME/.config/lxsession/LXDE-pi/autostart" << EOF
 @xset s off
 @xset -dpms
 @xset s noblank
+@onboard &
 @cd $RAYDOT_HOME/frontend/kiosk && npx electron .
 EOF
 
