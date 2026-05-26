@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+venv/
+
+# Database
+*.db
+*.db-journal
+
+# Node
+node_modules/
+*.tsbuildinfo
+
+# Build
+dist/
+release/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+!backend/.env.example
+
+# Logs
+*.log
+/tmp/
+
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# OMC
+.omc/
+.contexty/
+contexty.log
