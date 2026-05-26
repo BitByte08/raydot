@@ -13,6 +13,14 @@ async def seed():
     await init_db()
 
     async with async_session() as session:
+        from sqlalchemy import select, func
+
+        # Skip if already seeded
+        result = await session.execute(select(func.count()).select_from(Admin))
+        if result.scalar() > 0:
+            print("Database already seeded, skipping.")
+            return
+
         # Seed admin user
         from utils.password import hash_admin_password
         admin = Admin(
