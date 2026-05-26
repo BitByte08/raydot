@@ -1,25 +1,29 @@
 #!/bin/bash
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 echo "=== Raydot Build Script ==="
 
 # Backend
 echo "[1/4] Installing backend dependencies..."
-cd "$(dirname "$0")/../backend"
-pip3 install -r requirements.txt 2>/dev/null || pip install -r requirements.txt
+cd "$SCRIPT_DIR/backend"
+python3 -m venv venv 2>/dev/null || true
+source venv/bin/activate
+pip install -r requirements.txt
 
 echo "[2/4] Initializing database..."
 python3 init_db.py
 
 # Kiosk
 echo "[3/4] Building kiosk frontend..."
-cd "$(dirname "$0")/../frontend/kiosk"
+cd "$SCRIPT_DIR/frontend/kiosk"
 npm install --legacy-peer-deps 2>/dev/null || npm install
 npm run build
 
 # Admin
 echo "[4/4] Building admin frontend..."
-cd "$(dirname "$0")/../frontend/admin"
+cd "$SCRIPT_DIR/frontend/admin"
 npm install --legacy-peer-deps 2>/dev/null || npm install
 npm run build
 

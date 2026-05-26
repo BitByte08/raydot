@@ -1,14 +1,20 @@
 #!/bin/bash
 set -e
 
-RAYDOT_HOME="/home/pi/raydot"
+# Auto-detect repo root — works regardless of clone path or username
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+RAYDOT_HOME="$SCRIPT_DIR"
+CURRENT_USER="$(whoami)"
 
 echo "=== Raydot Installer for Raspberry Pi ==="
+echo "Repo: $RAYDOT_HOME"
+echo "User: $CURRENT_USER"
+echo ""
 
 # Install system dependencies
 echo "[1/6] Installing system packages..."
 sudo apt-get update -qq
-sudo apt-get install -y -qq python3 python3-pip nodejs npm nginx mosquitto mosquitto-clients
+sudo apt-get install -y -qq python3 python3-pip python3-venv nodejs npm nginx mosquitto mosquitto-clients
 
 # Setup Mosquitto
 echo "[2/6] Configuring MQTT broker..."
@@ -32,9 +38,9 @@ After=network.target mosquitto.service
 
 [Service]
 Type=simple
-User=pi
+User=$CURRENT_USER
 WorkingDirectory=$RAYDOT_HOME/backend
-ExecStart=/usr/bin/python3 -m uvicorn main:app --host 0.0.0.0 --port 8000
+ExecStart=$RAYDOT_HOME/backend/venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000
 Restart=always
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1
@@ -52,12 +58,13 @@ echo "[5/6] Configuring Nginx..."
 sudo cp "$RAYDOT_HOME/frontend/admin/nginx.conf" /etc/nginx/sites-available/raydot
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo ln -sf /etc/nginx/sites-available/raydot /etc/nginx/sites-enabled/
+sed -i "s|/home/pi/raydot|$RAYDOT_HOME|g" /etc/nginx/sites-available/raydot
 sudo nginx -t && sudo systemctl restart nginx
 
 # Setup kiosk autostart
 echo "[6/6] Configuring kiosk autostart..."
-mkdir -p /home/pi/.config/lxsession/LXDE-pi
-cat > /home/pi/.config/lxsession/LXDE-pi/autostart << EOF
+mkdir -p "$HOME/.config/lxsession/LXDE-pi"
+cat > "$HOME/.config/lxsession/LXDE-pi/autostart" << EOF
 @xset s off
 @xset -dpms
 @xset s noblank
