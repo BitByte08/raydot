@@ -1,0 +1,18 @@
+appId: com.raydot.kiosk
+productName: Raydot Kiosk
+directories:
+  output: release
+files:
+  - dist/**/*
+  - electron/**/*
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - arm64
+    - target: deb
+      arch:
+        - arm64
+  category: Utility
+  icon: null
+asar: true
