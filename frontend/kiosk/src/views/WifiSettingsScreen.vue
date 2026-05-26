@@ -15,8 +15,8 @@
       <div class="network-list">
         <div v-for="net in networks" :key="net.ssid" class="network-item" @click="selectNetwork(net)">
           <span class="net-name">{{ net.ssid }}</span>
-          <span class="net-signal">{{ '📶' }}{{ net.signal > 70 ? '●●●' : net.signal > 40 ? '●●' : '●' }}</span>
-          <span class="net-secure">{{ net.secure ? '🔒' : '' }}</span>
+          <span class="net-signal">{{ net.signal }}%</span>
+          <span class="net-secure">{{ net.secure ? 'PW' : '' }}</span>
         </div>
         <p v-if="!scanning && networks.length === 0" class="empty">검색된 네트워크가 없습니다</p>
       </div>

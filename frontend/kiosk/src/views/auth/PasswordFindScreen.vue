@@ -3,7 +3,7 @@
     <div class="head"><h2>비밀번호 찾기</h2></div>
     <div class="body">
       <div v-if="!sent">
-        <div class="scan-icon">💳</div>
+        <div class="scan-icon">카드</div>
         <p>학생증을 스캔해주세요</p>
         <input v-model="sid" type="text" placeholder="또는 학번 직접 입력" @keyup.enter="send" />
         <button @click="send" :disabled="!sid">재설정 링크 발송</button>

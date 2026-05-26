@@ -3,7 +3,9 @@ const path = require('path')
 const fs = require('fs')
 const { exec } = require('child_process')
 
-// Disable GPU acceleration on RPi (fixes GBM/DRM errors)
+// Disable all GPU on RPi — fixes GBM/DRM errors
+app.commandLine.appendSwitch('disable-gpu')
+app.commandLine.appendSwitch('disable-software-rasterizer')
 app.disableHardwareAcceleration()
 
 let mainWindow = null

@@ -1,7 +1,7 @@
 <template>
   <div class="splash" @click="goLogin">
     <div class="logo-area">
-      <div class="logo-icon">📚</div>
+      <div class="logo-icon">RD</div>
       <h1>Raydot</h1>
       <p class="subtitle">정독실 출입 관리 시스템</p>
     </div>

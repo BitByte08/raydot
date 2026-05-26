@@ -4,7 +4,7 @@
       <span class="greeting" @click="$router.push('/user/info')">{{ authStore.user?.name }}님</span>
       <h2>{{ roomStore.roomName || '좌석 현황' }}</h2>
       <div class="top-actions">
-        <button class="menu-btn" @click="showMenu = !showMenu">☰</button>
+        <button class="menu-btn" @click="showMenu = !showMenu">≡</button>
       </div>
     </div>
     <div class="legend">

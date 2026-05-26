@@ -1,12 +1,12 @@
 <template>
   <div class="login-screen">
     <div class="login-header">
-      <button class="wifi-btn" @click="goWifi">📶</button>
+      <button class="wifi-btn" @click="goWifi">WiFi</button>
       <h2>정독실 입실</h2>
     </div>
     <div class="login-body">
       <div class="scan-area">
-        <div class="scan-icon">💳</div>
+        <div class="scan-icon">카드</div>
         <p class="scan-text">학생증을 스캔해주세요</p>
         <input ref="scanInput" v-model="studentId" class="scan-input" type="text" placeholder="또는 학번 직접 입력"
           @keyup.enter="onScan" autofocus />
