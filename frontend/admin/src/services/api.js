@@ -3,7 +3,7 @@ import { useAdminAuthStore } from '@/stores/adminAuth'
 import router from '@/router'
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

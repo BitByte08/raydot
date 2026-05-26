@@ -19,11 +19,14 @@ sudo apt-get install -y -qq python3 python3-pip python3-venv nodejs npm nginx mo
 # Setup Mosquitto
 echo "[2/6] Configuring MQTT broker..."
 sudo cp "$RAYDOT_HOME/backend/mosquitto.conf" /etc/mosquitto/conf.d/raydot.conf
-if ! sudo grep -q raydot /etc/mosquitto/passwd 2>/dev/null; then
-    sudo mosquitto_passwd -b -c /etc/mosquitto/passwd raydot raydot
-fi
+# Disable default listener to avoid port conflict
+sudo sed -i 's/^listener /#listener /' /etc/mosquitto/mosquitto.conf 2>/dev/null || true
+sudo sed -i 's/^port /#port /' /etc/mosquitto/mosquitto.conf 2>/dev/null || true
 sudo systemctl enable mosquitto
-sudo systemctl restart mosquitto
+sudo systemctl restart mosquitto || {
+    echo "Mosquitto restart failed, checking logs..."
+    sudo journalctl -xeu mosquitto --no-pager -n 10
+}
 
 # Build
 echo "[3/6] Building all components..."

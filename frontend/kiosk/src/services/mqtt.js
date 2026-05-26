@@ -1,6 +1,6 @@
 import mqtt from 'mqtt'
 
-const MQTT_BROKER = import.meta.env.VITE_MQTT_BROKER || 'ws://localhost:9001'
+const MQTT_BROKER = import.meta.env.VITE_MQTT_BROKER || 'mqtt://localhost:1883'
 const TOPICS = {
   seatState: (code) => `kiosk/${code}/seat/state`,
   qrIssue: (code) => `kiosk/${code}/qr/issue`,
