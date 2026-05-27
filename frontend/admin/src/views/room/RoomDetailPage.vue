@@ -13,6 +13,14 @@
 
     <div class="section">
       <h2>출입문 연결</h2>
+      <div v-if="code" class="qr-hint">
+        <button class="qr-btn" @click="showDoorQR = !showDoorQR">Door QR 발급</button>
+        <div v-if="showDoorQR" class="qr-box">
+          <p>ESP32에서 이 QR을 스캔하세요</p>
+          <canvas ref="doorQRCanvas" class="door-qr"></canvas>
+          <p class="qr-code-text">ROOM:{{ code }}</p>
+        </div>
+      </div>
       <div class="reg-row">
         <input v-model="doorId" placeholder="출입문 ID" />
         <button @click="regDoor">연결</button>

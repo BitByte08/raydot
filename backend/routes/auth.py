@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_
 
 from database import get_db
 from models import User, Admin
@@ -9,6 +9,7 @@ from schemas import (
     StudentLoginRequest, StudentLoginResponse,
     PasswordInitialRequest, PasswordFindRequest,
     AdminSignUpRequest, AdminLoginRequest, AdminLoginResponse,
+    CardLinkRequest,
 )
 from utils.password import verify_pin, hash_pin, verify_admin_password, hash_admin_password
 from utils.auth import create_access_token, create_admin_token, get_current_admin
@@ -22,7 +23,11 @@ router = APIRouter(prefix="/api", tags=["auth"])
 
 @router.post("/auth/login", response_model=StudentLoginResponse)
 async def student_login(body: StudentLoginRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.student_id == body.student_id))
+    result = await db.execute(
+        select(User).where(
+            or_(User.student_id == body.student_id, User.card_number == body.student_id)
+        )
+    )
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
@@ -92,6 +97,36 @@ async def password_find(body: PasswordFindRequest, db: AsyncSession = Depends(ge
         body=f'<p>비밀번호 재설정 링크: <a href="{reset_url}">{reset_url}</a></p>',
     )
     return {"success": True, "message": "이메일로 재설정 링크가 발송되었습니다."}
+
+
+# --- Card Link (barcode registration) ---
+
+@router.post("/auth/link-card")
+async def link_card(body: CardLinkRequest, db: AsyncSession = Depends(get_db)):
+    """Link a scanned card_number to an existing user by student_id."""
+    # Check if this card_number is already linked to someone
+    result = await db.execute(select(User).where(User.card_number == body.card_number))
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="이미 등록된 카드입니다.")
+
+    # Find user by actual student_id
+    result = await db.execute(select(User).where(User.student_id == body.student_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="해당 학번의 사용자를 찾을 수 없습니다.")
+
+    user.card_number = body.card_number
+    await db.commit()
+
+    return {
+        "success": True,
+        "message": "학생증이 등록되었습니다.",
+        "user": {
+            "id": user.id,
+            "student_id": user.student_id,
+            "name": user.name,
+        },
+    }
 
 
 # --- Admin Auth ---

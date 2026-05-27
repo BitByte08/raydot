@@ -45,6 +45,30 @@ const authStore = useAuthStore()
 const roomStore = useRoomStore()
 const showMenu = ref(false)
 
+// Retry kiosk registration up to 3 times with 2s delay
+async function registerKiosk(code, kioskId) {
+  for (let i = 0; i < 3; i++) {
+    try {
+      await apiClient.post(`/api/room/${code}/kiosk/register`, { kiosk_id: kioskId })
+      console.log(`[Kiosk] Registered with room ${code}`)
+      return
+    } catch (e) {
+      console.warn(`[Kiosk] Registration attempt ${i + 1} failed:`, e.message)
+      if (i < 2) await new Promise(r => setTimeout(r, 2000))
+    }
+  }
+  console.error(`[Kiosk] Failed to register with room ${code} after 3 attempts`)
+}
+
+
+// Retry kiosk registration up to 3 times with 2s delay
+      console.warn(`[Kiosk] Registration attempt ${i + 1} failed:`, e.message)
+      if (i < 2) await new Promise(r => setTimeout(r, 2000))
+    }
+  }
+  console.error(`[Kiosk] Failed to register with room ${code} after 3 attempts`)
+}
+
 function seatClass(seat) {
   if (seat.status === 'disabled') return 'disabled'
   if (seat.status === 'occupied') {
@@ -76,8 +100,9 @@ onMounted(async () => {
 
       // Connect MQTT for real-time seat state updates
       connectMqtt(data[0].code)
-      // Auto-register kiosk with room
-      apiClient.post(`/api/room/${data[0].code}/kiosk/register`, { kiosk_id: `kiosk-${data[0].code}` }).catch(() => {})
+      // Auto-register kiosk with room (retry up to 3 times)
+      const kioskId = `kiosk-${data[0].code}`
+      await registerKiosk(data[0].code, kioskId)
       onMessage((topic, payload) => {
         const code = roomStore.roomCode
         if (topic === TOPICS.seatState(code) && payload.seat_id) {

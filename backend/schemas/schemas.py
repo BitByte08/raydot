@@ -126,6 +126,19 @@ class SeatDisableRequest(BaseModel):
     disabled: bool
 
 
+# --- Card Link schemas ---
+
+class CardLinkRequest(BaseModel):
+    student_id: str
+    card_number: str
+
+
+class CardLinkResponse(BaseModel):
+    success: bool
+    user: Optional[dict] = None
+    message: str = ""
+
+
 # --- Kiosk / Door schemas ---
 
 class KioskRegisterRequest(BaseModel):
