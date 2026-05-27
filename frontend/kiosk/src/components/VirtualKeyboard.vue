@@ -1,6 +1,10 @@
 <template>
   <div class="vk-overlay" v-if="visible">
     <div class="vk-keyboard">
+      <div class="vk-preview">
+        <span class="vk-label">입력값:</span>
+        <span class="vk-value">{{ modelValue || ' ' }}</span>
+      </div>
       <div class="vk-row">
         <button v-for="k in '1234567890'" :key="k" @mousedown.prevent @click="type(k)">{{ k }}</button>
       </div>
@@ -54,9 +58,12 @@ function close() { emit('close') }
 
 <style scoped>
 .vk-overlay { position: fixed; bottom: 0; left: 0; right: 0; z-index: 999; }
-.vk-keyboard { background: #2c2c3a; padding: 6px 4px; border-radius: 8px 8px 0 0; }
+.vk-keyboard { background: #2c2c3a; padding: 4px 4px 6px; border-radius: 8px 8px 0 0; }
+.vk-preview { background: #fff; padding: 8px 14px; margin: 0 2px 4px; border-radius: 4px; display: flex; align-items: center; gap: 8px; min-height: 30px; }
+.vk-label { font-size: 12px; color: #999; flex-shrink: 0; }
+.vk-value { font-size: 16px; color: #333; font-weight: bold; word-break: break-all; }
 .vk-row { display: flex; gap: 3px; justify-content: center; margin-bottom: 3px; }
-.vk-row button { flex: 1; max-width: 52px; height: 42px; font-size: 16px; background: #4a4a5e; color: #fff; border-radius: 4px; min-width: 0; min-height: 0; }
+.vk-row button { flex: 1; max-width: 52px; height: 36px; font-size: 15px; background: #4a4a5e; color: #fff; border-radius: 4px; min-width: 0; min-height: 0; }
 .vk-row button:active { background: #666; }
 .vk-shift { max-width: 44px !important; }
 .vk-wide { flex: 4 !important; max-width: none !important; }
