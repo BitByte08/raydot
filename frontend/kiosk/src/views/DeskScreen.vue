@@ -45,30 +45,6 @@ const authStore = useAuthStore()
 const roomStore = useRoomStore()
 const showMenu = ref(false)
 
-// Retry kiosk registration up to 3 times with 2s delay
-async function registerKiosk(code, kioskId) {
-  for (let i = 0; i < 3; i++) {
-    try {
-      await apiClient.post(`/api/room/${code}/kiosk/register`, { kiosk_id: kioskId })
-      console.log(`[Kiosk] Registered with room ${code}`)
-      return
-    } catch (e) {
-      console.warn(`[Kiosk] Registration attempt ${i + 1} failed:`, e.message)
-      if (i < 2) await new Promise(r => setTimeout(r, 2000))
-    }
-  }
-  console.error(`[Kiosk] Failed to register with room ${code} after 3 attempts`)
-}
-
-
-// Retry kiosk registration up to 3 times with 2s delay
-      console.warn(`[Kiosk] Registration attempt ${i + 1} failed:`, e.message)
-      if (i < 2) await new Promise(r => setTimeout(r, 2000))
-    }
-  }
-  console.error(`[Kiosk] Failed to register with room ${code} after 3 attempts`)
-}
-
 function seatClass(seat) {
   if (seat.status === 'disabled') return 'disabled'
   if (seat.status === 'occupied') {
