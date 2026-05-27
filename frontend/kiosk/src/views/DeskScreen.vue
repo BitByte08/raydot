@@ -45,17 +45,6 @@ const authStore = useAuthStore()
 const roomStore = useRoomStore()
 const showMenu = ref(false)
 
-async function registerKiosk(code, kioskId) {
-  for (var i = 0; i < 3; i++) {
-    try {
-      await apiClient.post('/api/room/' + code + '/kiosk/register', { kiosk_id: kioskId })
-      return
-    } catch (e) {
-      if (i < 2) await new Promise(function(r) { setTimeout(r, 2000) })
-    }
-  }
-}
-
 function seatClass(seat) {
   if (seat.status === 'disabled') return 'disabled'
   if (seat.status === 'occupied') {
@@ -76,20 +65,21 @@ function onSeatClick(seat) {
 
 function doLogout() { authStore.logout(); router.push('/') }
 
-onMounted(async function() {
+onMounted(async () => {
   if (!authStore.isLoggedIn) { router.push('/'); return }
   try {
-    var resp = await apiClient.get('/api/rooms')
-    var data = resp.data
+    const { data } = await apiClient.get('/api/rooms')
     if (data.length > 0) {
       roomStore.setRoom(data[0].code, data[0].name)
-      var r = await apiClient.get('/api/room/' + data[0].code + '/seats')
+      const r = await apiClient.get(`/api/room/${data[0].code}/seats`)
       roomStore.setSeats(r.data.seats)
+
+      // Connect MQTT for real-time seat state updates
       connectMqtt(data[0].code)
-      var kioskId = 'kiosk-' + data[0].code
-      await registerKiosk(data[0].code, kioskId)
-      onMessage(function(topic, payload) {
-        var code = roomStore.roomCode
+      // Auto-register kiosk with room
+      apiClient.post(`/api/room/${data[0].code}/kiosk/register`, { kiosk_id: `kiosk-${data[0].code}` }).catch(() => {})
+      onMessage((topic, payload) => {
+        const code = roomStore.roomCode
         if (topic === TOPICS.seatState(code) && payload.seat_id) {
           roomStore.updateSeat(payload.seat_id, payload.status, payload.user_id, payload.user_name)
         }

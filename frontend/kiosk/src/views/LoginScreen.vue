@@ -25,7 +25,6 @@
         <button class="btn" @click="blacklistAlert = false; studentId=''; pin=''">확인</button>
       </div>
     </div>
-    <!-- 카드 등록 모달 -->
     <div v-if="showCardModal" class="card-register-overlay">
       <div class="card-register-card">
         <h3>등록되지 않은 학생증입니다</h3>
@@ -65,7 +64,6 @@ const loading = ref(false)
 const blacklistAlert = ref(false)
 const scannerBuffer = ref('')
 
-// Card registration modal state
 const showCardModal = ref(false)
 const cardLinkStudentId = ref('')
 const linkLoading = ref(false)
@@ -90,7 +88,6 @@ async function onLogin(pinValue) {
   } catch (e) {
     const status = e.response?.status
     if (status === 404) {
-      // User not found — show card registration modal
       showPinPad.value = false; pin.value = ''
       cardLinkStudentId.value = ''
       linkError.value = ''
@@ -111,7 +108,6 @@ async function doLinkCard() {
       card_number: studentId.value,
     })
     showCardModal.value = false
-    // Retry login with the now-linked card number
     showPinPad.value = true
   } catch (e) {
     linkError.value = e.response?.data?.detail || '등록 실패'
@@ -121,7 +117,6 @@ async function doLinkCard() {
 function goWifi() { router.push('/wifi') }
 function onBlur() { setTimeout(() => { showKeyboard.value = false }, 200) }
 
-// USB RFID/Barcode scanner input handler (keyboard wedge mode)
 function handleScannerInput(e) {
   if (showPinPad.value || blacklistAlert.value || showCardModal.value) return
   clearTimeout(scannerTimer)
@@ -160,7 +155,6 @@ onUnmounted(() => { window.removeEventListener('keydown', handleScannerInput) })
 .blacklist-card h3 { color: #e74c3c; font-size: 22px; margin-bottom: 12px; }
 .blacklist-card p { color: #666; margin-bottom: 20px; line-height: 1.6; }
 .blacklist-card .btn { padding: 12px 32px; background: #4361ee; color: #fff; border-radius: 8px; }
-/* Card registration modal */
 .card-register-overlay { position: fixed; top: 0; left: 0; width: 800px; height: 480px; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 200; }
 .card-register-card { background: #fff; border-radius: 16px; padding: 32px; text-align: center; max-width: 360px; }
 .card-register-card h3 { color: #4361ee; font-size: 22px; margin-bottom: 12px; }

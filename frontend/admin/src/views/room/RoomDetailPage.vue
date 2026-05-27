@@ -1,7 +1,6 @@
 <template>
   <div class="page" v-if="room">
     <div class="top"><h1>{{ room.name }}</h1><router-link to="/rooms">← 목록</router-link></div>
-    
     <div class="section">
       <h2>키오스크 연결</h2>
       <div class="reg-row">
@@ -10,18 +9,16 @@
         <span class="status" :class="room.kiosk_id ? 'on' : 'off'">{{ room.kiosk_id ? `연결됨 (${room.kiosk_id})` : '미연결' }}</span>
       </div>
     </div>
-
     <div class="section">
       <h2>출입문 연결</h2>
-      <div v-if="code" class="qr-hint">
+      <div>
         <button class="qr-btn" @click="showDoorQR = !showDoorQR">Door QR 발급</button>
         <div v-if="showDoorQR" class="qr-box">
-          <p>ESP32에서 이 QR을 스캔하세요</p>
-          <canvas ref="doorQRCanvas" class="door-qr"></canvas>
-          <p class="qr-code-text">ROOM:{{ code }}</p>
+          <p>ESP32에서 이 코드를 스캔하거나 수동 입력하세요</p>
+          <div class="door-qr-text">ROOM:{{ code }}</div>
         </div>
       </div>
-      <div class="reg-row">
+      <div class="reg-row" style="margin-top:12px">
         <input v-model="doorId" placeholder="출입문 ID" />
         <button @click="regDoor">연결</button>
         <span class="status" :class="room.door_id ? 'on' : 'off'">{{ room.door_id ? `연결됨 (${room.door_id})` : '미연결' }}</span>
@@ -31,7 +28,6 @@
         <button class="close-btn" @click="doorCmd('close')">닫기</button>
       </div>
     </div>
-
     <div class="section">
       <h2>좌석 배치</h2>
       <div class="seat-grid">
@@ -41,7 +37,6 @@
         </div>
       </div>
     </div>
-
     <div class="section">
       <h2>출입문 기록</h2>
       <table>
@@ -55,7 +50,7 @@
 import { ref, onMounted } from 'vue'; import { useRoute } from 'vue-router'; import apiClient from '@/services/api'
 const route = useRoute(); const code = route.params.code
 const room = ref(null); const seats = ref([]); const doorLogs = ref([])
-const kioskId = ref(''); const doorId = ref('')
+const kioskId = ref(''); const doorId = ref(''); const showDoorQR = ref(false)
 function fmt(iso) { return iso ? new Date(iso).toLocaleString('ko-KR') : '' }
 async function load() {
   const { data: r } = await apiClient.get('/api/admin/rooms'); room.value = r.find(x => x.code === code)
@@ -85,6 +80,10 @@ h2 { font-size: 18px; margin-bottom: 12px; }
 .door-controls { display: flex; gap: 8px; margin-top: 12px; }
 .open-btn { padding: 8px 16px; background: #2ecc71; color: #fff; border-radius: 6px; }
 .close-btn { padding: 8px 16px; background: #e74c3c; color: #fff; border-radius: 6px; }
+.qr-btn { padding: 8px 16px; background: #8e44ad; color: #fff; border-radius: 6px; font-size: 14px; }
+.qr-box { background: #f8f0ff; border: 2px dashed #8e44ad; border-radius: 8px; padding: 16px; margin-top: 8px; text-align: center; }
+.qr-box p { font-size: 13px; color: #666; margin-bottom: 8px; }
+.door-qr-text { font-size: 28px; font-weight: bold; color: #1a1a2e; font-family: monospace; letter-spacing: 2px; }
 .seat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .seat { background: #f0f0f5; border-radius: 6px; padding: 12px; text-align: center; }
 .seat.disabled { background: #ffe0e0; }
