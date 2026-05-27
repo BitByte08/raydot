@@ -9,11 +9,12 @@
         <div class="scan-icon">카드</div>
         <p class="scan-text">학생증을 스캔해주세요</p>
         <input ref="scanInput" v-model="studentId" class="scan-input" type="text" placeholder="또는 학번 직접 입력"
-          @keyup.enter="onScan" autofocus />
+          @keyup.enter="onScan" @focus="showKeyboard = true" autofocus />
       </div>
       <button class="btn-submit" :disabled="!studentId" @click="onScan">확인</button>
     </div>
     <PinKeypad v-if="showPinPad" title="PIN 입력" v-model="pin" @confirm="onLogin" @cancel="showPinPad = false" />
+    <VirtualKeyboard v-model="studentId" :visible="showKeyboard && !showPinPad" @close="showKeyboard = false" />
     <div v-if="errorMsg" class="error-toast">{{ errorMsg }}</div>
     <div v-if="loading" class="loading-overlay"><div class="spinner"></div></div>
     <div v-if="blacklistAlert" class="blacklist-overlay">
@@ -32,6 +33,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import apiClient from '@/services/api'
 import PinKeypad from '@/components/PinKeypad.vue'
+import VirtualKeyboard from '@/components/VirtualKeyboard.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -40,6 +42,7 @@ const scanInput = ref(null)
 const studentId = ref('')
 const pin = ref('')
 const showPinPad = ref(false)
+const showKeyboard = ref(false)
 const errorMsg = ref('')
 const loading = ref(false)
 const blacklistAlert = ref(false)
@@ -79,7 +82,7 @@ function handleScannerInput(e) {
     if (scanned) { studentId.value = scanned; scannerBuffer.value = ''; onScan() }
     return
   }
-  if (key.length === 1 && /^[\w-]$/.test(key)) scannerBuffer.value += key
+  if (key.length === 1 && /^[\w\-:.]$/.test(key)) scannerBuffer.value += key
   scannerTimer = setTimeout(() => { scannerBuffer.value = '' }, 200)
 }
 
