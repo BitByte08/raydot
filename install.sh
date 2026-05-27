@@ -73,7 +73,7 @@ cat > "$HOME/.config/autostart/raydot-kiosk.desktop" << EOF
 [Desktop Entry]
 Type=Application
 Name=Raydot Kiosk
-Exec=bash -c "onboard & sleep 1; cd $RAYDOT_HOME/frontend/kiosk && npx electron ."
+Exec=bash -c "onboard & sleep 5; until curl -sf http://localhost:8000/health; do sleep 1; done; cd $RAYDOT_HOME/frontend/kiosk && npx electron ."
 X-GNOME-Autostart-enabled=true
 EOF
 
