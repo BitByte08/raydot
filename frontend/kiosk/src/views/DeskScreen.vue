@@ -76,6 +76,8 @@ onMounted(async () => {
 
       // Connect MQTT for real-time seat state updates
       connectMqtt(data[0].code)
+      // Auto-register kiosk with room
+      apiClient.post(`/api/room/${data[0].code}/kiosk/register`, { kiosk_id: `kiosk-${data[0].code}` }).catch(() => {})
       onMessage((topic, payload) => {
         const code = roomStore.roomCode
         if (topic === TOPICS.seatState(code) && payload.seat_id) {

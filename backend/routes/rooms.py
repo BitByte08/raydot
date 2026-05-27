@@ -368,6 +368,22 @@ async def admin_seat_logs(
 
 # --- Kiosk management ---
 
+@router.post("/api/room/{room_code}/kiosk/register")
+async def kiosk_auto_register(
+    room_code: str,
+    body: KioskRegisterRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Public: kiosk auto-registers with room."""
+    result = await db.execute(select(Room).where(Room.code == room_code))
+    room = result.scalar_one_or_none()
+    if not room:
+        raise HTTPException(status_code=404, detail="정독실을 찾을 수 없습니다.")
+    room.kiosk_id = body.kiosk_id
+    await db.commit()
+    return {"success": True}
+
+
 @router.post("/api/admin/room/{room_code}/kiosk/register")
 async def register_kiosk(
     room_code: str,
