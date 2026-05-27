@@ -2,22 +2,22 @@
   <div class="vk-overlay" v-if="visible">
     <div class="vk-keyboard">
       <div class="vk-row">
-        <button v-for="k in '1234567890'" :key="k" @click="type(k)">{{ k }}</button>
+        <button v-for="k in '1234567890'" :key="k" @mousedown.prevent @click="type(k)">{{ k }}</button>
       </div>
       <div class="vk-row">
-        <button v-for="k in 'qwertyuiop'" :key="k" @click="type(k)">{{ k }}</button>
+        <button v-for="k in 'qwertyuiop'" :key="k" @mousedown.prevent @click="type(k)">{{ k }}</button>
       </div>
       <div class="vk-row">
-        <button v-for="k in 'asdfghjkl'" :key="k" @click="type(k)">{{ k }}</button>
+        <button v-for="k in 'asdfghjkl'" :key="k" @mousedown.prevent @click="type(k)">{{ k }}</button>
       </div>
       <div class="vk-row">
-        <button class="vk-shift" @click="shift=!shift">↑</button>
-        <button v-for="k in getRow3()" :key="k" @click="type(k)">{{ k }}</button>
+        <button class="vk-shift" @mousedown.prevent @click="shift=!shift">↑</button>
+        <button v-for="k in getRow3()" :key="k" @mousedown.prevent @click="type(k)">{{ k }}</button>
       </div>
       <div class="vk-row">
-        <button class="vk-wide" @click="type(' ')">스페이스</button>
-        <button class="vk-back" @click="back">←</button>
-        <button class="vk-done" @click="close">완료</button>
+        <button class="vk-wide" @mousedown.prevent @click="type(' ')">스페이스</button>
+        <button class="vk-back" @mousedown.prevent @click="back">←</button>
+        <button class="vk-done" @mousedown.prevent @click="close">완료</button>
       </div>
     </div>
   </div>

@@ -9,7 +9,7 @@
         <div class="scan-icon">카드</div>
         <p class="scan-text">학생증을 스캔해주세요</p>
         <input ref="scanInput" v-model="studentId" class="scan-input" type="text" placeholder="또는 학번 직접 입력"
-          @keyup.enter="onScan" @focus="showKeyboard = true" autofocus />
+          @keyup.enter="onScan" @focus="showKeyboard = true" @blur="onBlur" />
       </div>
       <button class="btn-submit" :disabled="!studentId" @click="onScan">확인</button>
     </div>
@@ -28,7 +28,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import apiClient from '@/services/api'
@@ -71,6 +71,7 @@ async function onLogin(pinValue) {
 }
 
 function goWifi() { router.push('/wifi') }
+function onBlur() { setTimeout(() => { showKeyboard.value = false }, 200) }
 
 // USB RFID/Barcode scanner input handler (keyboard wedge mode)
 function handleScannerInput(e) {
@@ -86,7 +87,7 @@ function handleScannerInput(e) {
   scannerTimer = setTimeout(() => { scannerBuffer.value = '' }, 200)
 }
 
-onMounted(() => { window.addEventListener('keydown', handleScannerInput); nextTick(() => scanInput.value?.focus()) })
+onMounted(() => { window.addEventListener('keydown', handleScannerInput) })
 onUnmounted(() => { window.removeEventListener('keydown', handleScannerInput) })
 </script>
 

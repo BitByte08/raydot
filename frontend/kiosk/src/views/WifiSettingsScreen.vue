@@ -28,7 +28,7 @@
     <div v-if="showPassword" class="pwd-overlay">
       <div class="pwd-box">
         <h3>{{ selectedNetwork?.ssid }} 비밀번호</h3>
-        <input v-model="wifiPassword" type="text" placeholder="비밀번호 입력" autofocus />
+        <input v-model="wifiPassword" type="text" placeholder="비밀번호 입력" />
         <div class="pwd-btns">
           <button class="cancel" @click="showPassword = false; wifiPassword = ''">취소</button>
           <button class="ok" :disabled="!wifiPassword" @click="connectNetwork(wifiPassword)">연결</button>
