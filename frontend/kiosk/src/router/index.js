@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 
 const routes = [
-  { path: '/', name: 'login', component: () => import('@/views/LoginScreen.vue') },
+  { path: '/', name: 'desk', component: () => import('@/views/DeskScreen.vue') },
   { path: '/wifi', name: 'wifi', component: () => import('@/views/WifiSettingsScreen.vue') },
   { path: '/password/initial', name: 'password-initial', component: () => import('@/views/auth/PasswordInitialScreen.vue') },
   { path: '/password/find', name: 'password-find', component: () => import('@/views/auth/PasswordFindScreen.vue') },
