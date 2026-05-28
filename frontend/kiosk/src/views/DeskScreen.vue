@@ -1,7 +1,7 @@
 <template>
   <div class="desk-screen">
     <div class="top-bar">
-      <span class="greeting" @click="$router.push('/user/info')">{{ authStore.user?.name }}님</span>
+      <span class="greeting">{{ authStore.user?.name || '좌석을 선택하세요' }}</span>
       <h2>{{ roomStore.roomName || '좌석 현황' }}</h2>
       <div class="top-actions">
         <button class="menu-btn" @click="showMenu = !showMenu">≡</button>
@@ -19,6 +19,35 @@
         <span class="seat-user" v-if="seat.status === 'occupied' && seat.user_name">{{ seat.user_name.substring(0,3) }}</span>
       </div>
     </div>
+
+    <!-- 로그인 모달 -->
+    <div v-if="showLoginModal" class="modal-overlay" @click.self="closeLoginModal">
+      <div class="login-modal">
+        <h3>{{ selectedSeat?.number }} 좌석 입실</h3>
+        <p class="scan-label">학생증을 스캔해주세요</p>
+        <input ref="scanInput" v-model="loginStudentId" class="scan-input" type="text"
+          placeholder="또는 학번 직접 입력" @keyup.enter="onScan" @focus="showKeyboard = true" />
+        <div class="login-btns">
+          <button class="btn-cancel" @click="closeLoginModal">취소</button>
+          <button class="btn-confirm" :disabled="!loginStudentId" @click="onScan">확인</button>
+        </div>
+        <PinKeypad v-if="showPinPad" title="PIN 입력" v-model="loginPin" @confirm="onLogin" @cancel="showPinPad = false" />
+        <VirtualKeyboard v-model="loginStudentId" :visible="showKeyboard && !showPinPad" @close="showKeyboard = false" />
+        <div v-if="loginError" class="login-error">{{ loginError }}</div>
+      </div>
+    </div>
+
+    <!-- QR 표시 모달 -->
+    <div v-if="showQRModal" class="modal-overlay">
+      <div class="qr-modal">
+        <h3>입실 완료</h3>
+        <canvas ref="qrCanvas" class="qr-canvas"></canvas>
+        <p>정독실 입장 시 QR을 스캔하세요</p>
+        <p class="qr-expire" v-if="qrExpire">유효시간: {{ qrRemaining }}초</p>
+        <button class="btn-ok" @click="closeQR">확인</button>
+      </div>
+    </div>
+
     <div v-if="showMenu" class="menu-overlay" @click.self="showMenu = false">
       <div class="menu">
         <button @click="$router.push('/user/info'); showMenu=false">내 정보</button>
@@ -33,50 +62,152 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useRoomStore } from '@/stores/room'
 import apiClient from '@/services/api'
 import { connectMqtt, onMessage, disconnectMqtt, TOPICS } from '@/services/mqtt'
+import PinKeypad from '@/components/PinKeypad.vue'
+import VirtualKeyboard from '@/components/VirtualKeyboard.vue'
+import QRCode from 'qrcode'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const roomStore = useRoomStore()
 const showMenu = ref(false)
 
+// Login modal state
+const showLoginModal = ref(false)
+const selectedSeat = ref(null)
+const scanInput = ref(null)
+const loginStudentId = ref('')
+const loginPin = ref('')
+const showPinPad = ref(false)
+const showKeyboard = ref(false)
+const loginError = ref('')
+const scannerBuffer = ref('')
+let scannerTimer = null
+
+// QR modal state
+const showQRModal = ref(false)
+const qrCanvas = ref(null)
+const qrExpire = ref(null)
+const qrRemaining = ref(30)
+let qrTimer = null
+
 function seatClass(seat) {
   if (seat.status === 'disabled') return 'disabled'
-  if (seat.status === 'occupied') {
-    if (seat.user_id === authStore.user?.id) return 'my-seat'
-    return 'occupied'
-  }
+  if (seat.status === 'occupied') return 'occupied'
   return 'empty'
 }
 
 function onSeatClick(seat) {
   if (seat.status === 'disabled') return
-  if (seat.status === 'occupied' && seat.user_id === authStore.user?.id) {
-    router.push({ name: 'check-out', query: { sid: seat.id, snum: seat.number } })
-  } else if (seat.status === 'empty') {
-    router.push({ name: 'check-in', query: { sid: seat.id, snum: seat.number } })
+  if (seat.status === 'occupied') return
+  // Empty seat: show login modal
+  selectedSeat.value = seat
+  loginStudentId.value = ''
+  loginPin.value = ''
+  loginError.value = ''
+  showLoginModal.value = true
+  nextTick(() => scanInput.value?.focus())
+}
+
+function closeLoginModal() {
+  showLoginModal.value = false
+  showPinPad.value = false
+  selectedSeat.value = null
+  loginStudentId.value = ''
+  loginPin.value = ''
+}
+
+function onScan() {
+  if (!loginStudentId.value) return
+  showPinPad.value = true
+}
+
+async function onLogin(pinValue) {
+  loginError.value = ''
+  try {
+    const { data } = await apiClient.post('/api/auth/login', { student_id: loginStudentId.value, pin: pinValue })
+    if (data.blacklist) { loginError.value = '이용이 제한되었습니다'; return }
+    if (data.success) {
+      authStore.setUser(data.user, data.token)
+      showPinPad.value = false
+      // Auto check-in
+      await doCheckIn()
+    }
+  } catch (e) {
+    loginError.value = e.response?.data?.detail || '로그인 실패'
+    showPinPad.value = false; loginPin.value = ''
   }
+}
+
+async function doCheckIn() {
+  const code = roomStore.roomCode
+  if (!code) { loginError.value = '정독실 정보 오류'; return }
+  try {
+    const { data } = await apiClient.post(`/api/room/${code}/check-in`, {
+      seat_id: Number(selectedSeat.value.id),
+      user_id: authStore.user?.id,
+      pass_type: 'daily',
+    })
+    if (data.success) {
+      showLoginModal.value = false
+      showQRModal.value = true
+      // Generate QR
+      nextTick(async () => {
+        if (qrCanvas.value) {
+          await QRCode.toCanvas(qrCanvas.value, data.qr_code, { width: 180, margin: 2 })
+        }
+      })
+      // Countdown
+      if (data.expires_at) {
+        qrExpire.value = new Date(data.expires_at)
+        qrTimer = setInterval(() => {
+          const diff = Math.max(0, Math.floor((qrExpire.value - new Date()) / 1000))
+          qrRemaining.value = diff
+          if (diff <= 0) closeQR()
+        }, 1000)
+      }
+    }
+  } catch (e) {
+    loginError.value = e.response?.data?.detail || '입실 실패'
+  }
+}
+
+function closeQR() {
+  if (qrTimer) clearInterval(qrTimer)
+  showQRModal.value = false
+  authStore.logout()
+  selectedSeat.value = null
 }
 
 function doLogout() { authStore.logout(); router.push('/') }
 
+// Scanner handler
+function handleScannerInput(e) {
+  if (!showLoginModal.value || showPinPad.value) return
+  clearTimeout(scannerTimer)
+  const key = e.key
+  if (key === 'Enter') {
+    const scanned = scannerBuffer.value.trim()
+    if (scanned) { loginStudentId.value = scanned; scannerBuffer.value = ''; onScan() }
+    return
+  }
+  if (key.length === 1 && /^[\w\-:.]$/.test(key)) scannerBuffer.value += key
+  scannerTimer = setTimeout(() => { scannerBuffer.value = '' }, 200)
+}
+
 onMounted(async () => {
-  if (!authStore.isLoggedIn) { router.push('/'); return }
   try {
     const { data } = await apiClient.get('/api/rooms')
     if (data.length > 0) {
       roomStore.setRoom(data[0].code, data[0].name)
       const r = await apiClient.get(`/api/room/${data[0].code}/seats`)
       roomStore.setSeats(r.data.seats)
-
-      // Connect MQTT for real-time seat state updates
       connectMqtt(data[0].code)
-      // Auto-register kiosk with room
       apiClient.post(`/api/room/${data[0].code}/kiosk/register`, { kiosk_id: `kiosk-${data[0].code}` }).catch(() => {})
       onMessage((topic, payload) => {
         const code = roomStore.roomCode
@@ -85,7 +216,13 @@ onMounted(async () => {
         }
       })
     }
-  } catch(e) { console.error('Failed to load seats:', e) }
+  } catch(e) { console.error('Failed:', e) }
+  window.addEventListener('keydown', handleScannerInput)
+})
+
+onUnmounted(() => {
+  if (qrTimer) clearInterval(qrTimer)
+  window.removeEventListener('keydown', handleScannerInput)
 })
 </script>
 
@@ -105,10 +242,31 @@ onMounted(async () => {
 .seat-card:active { transform: scale(0.95); }
 .seat-card.empty { background: #bdc3c7; }
 .seat-card.occupied { background: #3498db; color: #fff; }
-.seat-card.my-seat { background: #2ecc71; color: #fff; }
 .seat-card.disabled { background: #e74c3c; opacity: 0.5; }
 .seat-num { font-size: 18px; font-weight: bold; }
 .seat-user { font-size: 11px; margin-top: 2px; opacity: 0.9; }
+
+/* Login modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.login-modal { background: #fff; border-radius: 16px; padding: 28px; text-align: center; width: 360px; }
+.login-modal h3 { font-size: 22px; margin-bottom: 8px; }
+.scan-label { color: #666; font-size: 15px; margin-bottom: 16px; }
+.scan-input { width: 280px; text-align: center; font-size: 18px; padding: 8px; border: 2px solid #4361ee; border-radius: 8px; margin-bottom: 16px; }
+.login-btns { display: flex; gap: 12px; justify-content: center; }
+.login-btns button { padding: 10px 32px; border-radius: 8px; font-size: 16px; }
+.btn-cancel { background: #f0f0f5; color: #666; }
+.btn-confirm { background: #4361ee; color: #fff; }
+.btn-confirm:disabled { background: #ccc; }
+.login-error { color: #e74c3c; margin-top: 12px; font-size: 14px; }
+
+/* QR modal */
+.qr-modal { background: #fff; border-radius: 16px; padding: 28px; text-align: center; width: 340px; }
+.qr-modal h3 { font-size: 22px; margin-bottom: 12px; color: #2ecc71; }
+.qr-canvas { margin: 0 auto 12px; }
+.qr-modal p { font-size: 15px; color: #333; margin-bottom: 4px; }
+.qr-expire { color: #e74c3c !important; font-weight: bold; }
+.btn-ok { width: 200px; padding: 12px; background: #4361ee; color: #fff; border-radius: 8px; font-size: 16px; margin-top: 12px; }
+
 .menu-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; }
 .menu { position: absolute; right: 0; top: 0; bottom: 0; width: 220px; background: #fff; display: flex; flex-direction: column; padding: 60px 0 0; }
 .menu button { padding: 14px 20px; background: none; border-radius: 0; font-size: 16px; text-align: left; border-bottom: 1px solid #eee; }
