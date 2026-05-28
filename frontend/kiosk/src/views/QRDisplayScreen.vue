@@ -4,8 +4,9 @@
     <div class="body">
       <canvas ref="qrCanvas" class="qr-canvas"></canvas>
       <p class="guide">정독실 입장 시 QR을 스캔하세요</p>
+      <p class="email-note">등록된 이메일로 QR 코드가 발송되었습니다</p>
       <p class="expire" v-if="expiresAt">유효시간: {{ remaining }}초</p>
-      <button class="ok-btn" @click="$router.push('/desk')">확인</button>
+      <button class="ok-btn" @click="doLogout">확인</button>
     </div>
   </div>
 </template>
@@ -13,10 +14,12 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import QRCode from 'qrcode'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 const qrCanvas = ref(null)
 const qrString = ref(route.query.qr || '')
 const expiresAt = ref(route.query.exp ? new Date(route.query.exp) : null)
@@ -24,10 +27,11 @@ const remaining = ref(1800)
 
 let timer = null
 
-onMounted(async () => {
-  if (!qrString.value) { router.push('/desk'); return }
+function doLogout() { authStore.logout(); router.push('/') }
 
-  // Generate real QR code image on canvas
+onMounted(async () => {
+  if (!qrString.value) { doLogout(); return }
+
   try {
     await QRCode.toCanvas(qrCanvas.value, qrString.value, {
       width: 200,
@@ -38,12 +42,11 @@ onMounted(async () => {
     console.error('QR generation failed:', e)
   }
 
-  // Countdown timer
   if (expiresAt.value) {
     timer = setInterval(() => {
       const diff = Math.max(0, Math.floor((expiresAt.value - new Date()) / 1000))
       remaining.value = diff
-      if (diff <= 0) { clearInterval(timer); router.push('/desk') }
+      if (diff <= 0) { clearInterval(timer); doLogout() }
     }, 1000)
   }
 })
