@@ -28,12 +28,15 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import apiClient from '@/services/api'
 import PinKeypad from '@/components/PinKeypad.vue'
 import VirtualKeyboard from '@/components/VirtualKeyboard.vue'
 
 defineProps({ title: { type: String, required: true } })
 const emit = defineEmits(['verified'])
+
+const authStore = useAuthStore()
 
 const user = ref(null)
 const token = ref('')
@@ -66,6 +69,7 @@ async function onPinConfirm(pinValue) {
     if (data.success) {
       user.value = data.user
       token.value = data.token
+      authStore.setInfoUser(data.user, data.token)
       showPinPad.value = false
       showKeyboard.value = false
       emit('verified', data.user, data.token)
@@ -92,7 +96,14 @@ function handleScannerInput(e) {
   scannerTimer = setTimeout(() => { scannerBuffer.value = '' }, 200)
 }
 
-onMounted(() => window.addEventListener('keydown', handleScannerInput))
+onMounted(() => {
+  window.addEventListener('keydown', handleScannerInput)
+  if (authStore.infoUser && authStore.infoToken) {
+    user.value = authStore.infoUser
+    token.value = authStore.infoToken
+    emit('verified', authStore.infoUser, authStore.infoToken)
+  }
+})
 onUnmounted(() => window.removeEventListener('keydown', handleScannerInput))
 </script>
 
