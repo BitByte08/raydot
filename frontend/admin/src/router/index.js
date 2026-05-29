@@ -16,6 +16,9 @@ const routes = [
       { path: 'qr', name: 'qr', component: () => import('@/views/QRStatusPage.vue') },
       { path: 'board/notify', name: 'board-notify', component: () => import('@/views/board/BoardNotifyPage.vue') },
       { path: 'board/inquiry', name: 'board-inquiry', component: () => import('@/views/board/BoardInquiryPage.vue') },
+      { path: 'admins', name: 'admins', component: () => import('@/views/admin/AdminListPage.vue') },
+      { path: 'admins/create', name: 'admin-create', component: () => import('@/views/admin/AdminCreatePage.vue') },
+      { path: 'admins/pin', name: 'admin-pin', component: () => import('@/views/admin/AdminPinPage.vue') },
     ],
   },
 ]

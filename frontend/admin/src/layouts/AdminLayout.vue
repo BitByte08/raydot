@@ -11,6 +11,7 @@
         <li><router-link to="/qr">QR</router-link></li>
         <li><router-link to="/board/notify">공지사항</router-link></li>
         <li><router-link to="/board/inquiry">문의사항</router-link></li>
+        <li><router-link to="/admins">관리자</router-link></li>
       </ul>
       <div class="sidebar-footer">
         <button @click="handleLogout" class="logout-btn">로그아웃</button>
