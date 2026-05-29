@@ -5,7 +5,7 @@ const routes = [
   { path: '/wifi', name: 'wifi', component: () => import('@/views/WifiSettingsScreen.vue') },
   { path: '/password/initial', name: 'password-initial', component: () => import('@/views/auth/PasswordInitialScreen.vue') },
   { path: '/password/find', name: 'password-find', component: () => import('@/views/auth/PasswordFindScreen.vue') },
-  { path: '/desk', name: 'desk', component: () => import('@/views/DeskScreen.vue') },
+  { path: '/desk', redirect: '/' },
   { path: '/check-in', name: 'check-in', component: () => import('@/views/CheckInScreen.vue') },
   { path: '/check-out', name: 'check-out', component: () => import('@/views/CheckOutScreen.vue') },
   { path: '/move', name: 'move', component: () => import('@/views/MoveScreen.vue') },

@@ -1,6 +1,13 @@
 import mqtt from 'mqtt'
 
-const MQTT_BROKER = import.meta.env.VITE_MQTT_BROKER || 'mqtt://localhost:1883'
+function defaultBroker() {
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    return `ws://${window.location.hostname}:9001`
+  }
+  return 'ws://localhost:9001'
+}
+
+const MQTT_BROKER = import.meta.env.VITE_MQTT_BROKER || defaultBroker()
 const TOPICS = {
   seatState: (code) => `kiosk/${code}/seat/state`,
   qrIssue: (code) => `kiosk/${code}/qr/issue`,
