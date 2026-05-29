@@ -18,6 +18,7 @@ from schemas.schemas import (
     DoorCommandRequest,
 )
 from utils.auth import get_current_admin, get_current_user
+from utils.password import verify_pin
 from utils.qr_signer import generate_qr_code
 from utils.email import send_email
 
@@ -164,7 +165,13 @@ async def check_in(room_code: str, body: CheckInRequest, db: AsyncSession = Depe
 
 @router.post("/api/room/{room_code}/check-out")
 async def check_out(room_code: str, body: CheckOutRequest, db: AsyncSession = Depends(get_db)):
-    """Check out from a seat."""
+    """Check out from a seat. Kiosk callers pass `pin` to authorize without a JWT."""
+    if body.pin is not None:
+        user_result = await db.execute(select(User).where(User.id == body.user_id))
+        user = user_result.scalar_one_or_none()
+        if not user or not user.pin or not verify_pin(body.pin, user.pin):
+            raise HTTPException(status_code=401, detail="PIN이 일치하지 않습니다.")
+
     result = await db.execute(
         select(SeatLog).where(
             SeatLog.seat_id == body.seat_id,

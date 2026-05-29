@@ -104,6 +104,7 @@ class CheckInResponse(BaseModel):
 class CheckOutRequest(BaseModel):
     seat_id: int
     user_id: int
+    pin: Optional[str] = None
 
 
 class SeatMoveRequest(BaseModel):
