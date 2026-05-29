@@ -37,6 +37,13 @@
       </div>
     </div>
 
+    <PinKeypad v-if="showCheckoutModal"
+      :title="`${selectedSeat?.number} 좌석 · ${selectedSeat?.user_name || ''} 퇴실`"
+      v-model="checkoutPin"
+      @confirm="doCheckOut"
+      @cancel="closeCheckoutModal" />
+    <div v-if="showCheckoutModal && checkoutError" class="checkout-error-toast">{{ checkoutError }}</div>
+
     <!-- QR 표시 모달 -->
     <div v-if="showQRModal" class="modal-overlay">
       <div class="qr-modal">
@@ -104,6 +111,10 @@ let qrTimer = null
 const loading = ref(false)
 const loadingMessage = ref('')
 
+const showCheckoutModal = ref(false)
+const checkoutPin = ref('')
+const checkoutError = ref('')
+
 function seatClass(seat) {
   if (seat.status === 'disabled') return 'disabled'
   if (seat.status === 'occupied') return 'occupied'
@@ -112,8 +123,13 @@ function seatClass(seat) {
 
 function onSeatClick(seat) {
   if (seat.status === 'disabled') return
-  if (seat.status === 'occupied') return
   selectedSeat.value = seat
+  if (seat.status === 'occupied') {
+    checkoutPin.value = ''
+    checkoutError.value = ''
+    showCheckoutModal.value = true
+    return
+  }
   loginStudentId.value = ''
   loginPin.value = ''
   loginError.value = ''
@@ -130,10 +146,42 @@ function closeLoginModal() {
   loginPin.value = ''
 }
 
+function closeCheckoutModal() {
+  showCheckoutModal.value = false
+  selectedSeat.value = null
+  checkoutPin.value = ''
+  checkoutError.value = ''
+}
+
 function onOverlayTap() {
   if (showKeyboard.value) { showKeyboard.value = false; return }
   if (showPinPad.value) { showPinPad.value = false; return }
   closeLoginModal()
+}
+
+async function doCheckOut(pinValue) {
+  const code = roomStore.roomCode
+  const seat = selectedSeat.value
+  if (!code || !seat) { checkoutError.value = '정독실 정보 오류'; return }
+  checkoutError.value = ''
+  loading.value = true
+  loadingMessage.value = '퇴실 처리 중...'
+  try {
+    const { data } = await apiClient.post(`/api/room/${code}/check-out`, {
+      seat_id: Number(seat.id),
+      user_id: Number(seat.user_id),
+      pin: pinValue,
+    })
+    if (data.success) {
+      roomStore.updateSeat(seat.id, 'empty', null, null)
+      closeCheckoutModal()
+    }
+  } catch (e) {
+    checkoutError.value = e.response?.data?.detail || '퇴실 실패'
+    checkoutPin.value = ''
+  } finally {
+    loading.value = false
+  }
 }
 
 function onScan() {
@@ -297,4 +345,6 @@ onUnmounted(() => {
 .spinner { width: 56px; height: 56px; border: 5px solid rgba(255,255,255,0.25); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
 .loading-text { margin-top: 14px; color: #fff; font-size: 16px; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.checkout-error-toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); background: #e74c3c; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 14px; z-index: 200; }
 </style>
