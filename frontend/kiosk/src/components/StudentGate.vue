@@ -2,10 +2,10 @@
   <div class="gate-screen">
     <div class="head"><button @click="$router.push('/')">←</button><h2>{{ title }}</h2></div>
 
-    <div v-if="!user" class="gate">
-      <div class="gate-box">
+    <div v-if="!user" class="gate" @click.self="showKeyboard = false">
+      <div class="gate-box" @click.self="showKeyboard = false">
         <p class="gate-title">본인 확인이 필요합니다</p>
-        <input ref="idInput" v-model="studentId" class="gate-input" type="text"
+        <input v-model="studentId" class="gate-input" type="text"
           placeholder="학번 입력 또는 학생증 스캔"
           @keyup.enter="onIdSubmit" @focus="showKeyboard = true" @click="showKeyboard = true" />
         <button class="gate-btn" :disabled="!studentId" @click="onIdSubmit">다음</button>
@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import apiClient from '@/services/api'
 import PinKeypad from '@/components/PinKeypad.vue'
 import VirtualKeyboard from '@/components/VirtualKeyboard.vue'
@@ -44,15 +44,14 @@ const showKeyboard = ref(false)
 const error = ref('')
 const loading = ref(false)
 
-const idInput = ref(null)
 const scannerBuffer = ref('')
 let scannerTimer = null
 
 function onIdSubmit() {
   if (!studentId.value) return
   error.value = ''
-  showPinPad.value = true
   showKeyboard.value = false
+  showPinPad.value = true
 }
 
 async function onPinConfirm(pinValue) {
@@ -68,6 +67,7 @@ async function onPinConfirm(pinValue) {
       user.value = data.user
       token.value = data.token
       showPinPad.value = false
+      showKeyboard.value = false
       emit('verified', data.user, data.token)
     }
   } catch (e) {
@@ -92,10 +92,7 @@ function handleScannerInput(e) {
   scannerTimer = setTimeout(() => { scannerBuffer.value = '' }, 200)
 }
 
-onMounted(() => {
-  window.addEventListener('keydown', handleScannerInput)
-  nextTick(() => idInput.value?.focus())
-})
+onMounted(() => window.addEventListener('keydown', handleScannerInput))
 onUnmounted(() => window.removeEventListener('keydown', handleScannerInput))
 </script>
 
