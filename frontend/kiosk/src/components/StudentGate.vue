@@ -1,6 +1,6 @@
 <template>
   <div class="gate-screen">
-    <div class="head"><button @click="$router.push('/')">←</button><h2>{{ title }}</h2></div>
+    <div class="head"><button @click="$router.back()">←</button><h2>{{ title }}</h2></div>
 
     <div v-if="!user" class="gate" @click.self="showKeyboard = false">
       <div class="gate-box" @click.self="showKeyboard = false">
