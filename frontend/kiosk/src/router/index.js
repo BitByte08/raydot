@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const routes = [
   { path: '/', name: 'desk', component: () => import('@/views/DeskScreen.vue') },
@@ -21,6 +22,12 @@ const routes = [
 const router = createRouter({
   history: createWebHashHistory(),
   routes,
+})
+
+router.beforeEach((to) => {
+  if (to.path === '/' || to.path === '/desk') {
+    useAuthStore().clearInfo()
+  }
 })
 
 export default router
