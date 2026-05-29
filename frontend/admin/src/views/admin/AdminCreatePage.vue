@@ -2,7 +2,7 @@
   <div class="page">
     <h1>관리자 추가</h1>
     <form @submit.prevent="submit" class="form">
-      <div class="field"><label>학교 이메일</label><input v-model="form.email" type="email" :placeholder="'@' + schoolDomain" required /></div>
+      <div class="field"><label>학교 이메일</label><input v-model="form.email" type="email" :placeholder="schoolDomain ? '@' + schoolDomain : '학교 이메일'" required /></div>
       <div class="field"><label>이름</label><input v-model="form.name" placeholder="관리자 이름" /></div>
       <div class="field"><label>비밀번호</label><input v-model="form.password" type="password" minlength="8" required /></div>
       <div class="field"><label>역할</label>
@@ -23,16 +23,23 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import apiClient from '@/services/api'
 
 const router = useRouter()
-const schoolDomain = 'school.edu'
+const schoolDomain = ref('')
 const form = reactive({ email: '', name: '', password: '', role: 'staff', pin: '' })
 const loading = ref(false)
 const msg = ref('')
 const ok = ref(false)
+
+onMounted(async () => {
+  try {
+    const { data } = await apiClient.get('/api/config')
+    schoolDomain.value = data.school_email_domain || ''
+  } catch (e) { /* placeholder will just be generic */ }
+})
 
 async function submit() {
   loading.value = true; msg.value = ''

@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from config import settings
 from database import init_db
 from routes import auth_router, users_router, rooms_router, qr_board_router
 from services import mqtt_service
@@ -37,3 +38,8 @@ app.include_router(qr_board_router)
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
+
+
+@app.get("/api/config")
+async def public_config():
+    return {"school_email_domain": settings.SCHOOL_EMAIL_DOMAIN}

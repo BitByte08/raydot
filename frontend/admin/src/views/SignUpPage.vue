@@ -6,7 +6,7 @@
         <h3>관리자 회원가입</h3>
         <form @submit.prevent="nextStep">
           <div class="field"><label>식별코드</label><input v-model="form.code" placeholder="학교에서 발급받은 코드" required /></div>
-          <div class="field"><label>학교 이메일</label><input v-model="form.email" type="email" :placeholder="'@' + schoolDomain" required /></div>
+          <div class="field"><label>학교 이메일</label><input v-model="form.email" type="email" :placeholder="schoolDomain ? '@' + schoolDomain : '학교 이메일'" required /></div>
           <p v-if="error" class="error">{{ error }}</p>
           <button type="submit" class="btn" :disabled="loading">{{ loading ? '처리 중...' : '다음' }}</button>
         </form>
@@ -31,7 +31,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import apiClient from '@/services/api'
 
@@ -42,11 +42,20 @@ const error = ref('')
 const pwError = ref('')
 const loading = ref(false)
 const done = ref(false)
-const schoolDomain = 'school.edu'
+const schoolDomain = ref('')
+
+onMounted(async () => {
+  try {
+    const { data } = await apiClient.get('/api/config')
+    schoolDomain.value = data.school_email_domain || ''
+  } catch (e) { /* fall back to client-side hint only */ }
+})
 
 function nextStep() {
   error.value = ''
-  if (!form.email.endsWith('@' + schoolDomain)) { error.value = '학교 이메일만 사용 가능합니다.'; return }
+  if (schoolDomain.value && !form.email.endsWith('@' + schoolDomain.value)) {
+    error.value = `@${schoolDomain.value} 이메일만 사용 가능합니다.`; return
+  }
   step.value = 2
 }
 
