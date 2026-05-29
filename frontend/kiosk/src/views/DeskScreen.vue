@@ -21,12 +21,12 @@
     </div>
 
     <!-- 로그인 모달 -->
-    <div v-if="showLoginModal" class="modal-overlay" @click.self="closeLoginModal">
+    <div v-if="showLoginModal" class="modal-overlay" @click.self="onOverlayTap">
       <div class="login-modal">
         <h3>{{ selectedSeat?.number }} 좌석 입실</h3>
         <p class="scan-label">학생증을 스캔해주세요</p>
         <input ref="scanInput" v-model="loginStudentId" class="scan-input" type="text"
-          placeholder="또는 학번 직접 입력" @keyup.enter="onScan" @focus="showKeyboard = true" />
+          placeholder="또는 학번 직접 입력" @keyup.enter="onScan" @focus="showKeyboard = true" @click="showKeyboard = true" />
         <div class="login-btns">
           <button class="btn-cancel" @click="closeLoginModal">취소</button>
           <button class="btn-confirm" :disabled="!loginStudentId" @click="onScan">확인</button>
@@ -105,21 +105,27 @@ function seatClass(seat) {
 function onSeatClick(seat) {
   if (seat.status === 'disabled') return
   if (seat.status === 'occupied') return
-  // Empty seat: show login modal
   selectedSeat.value = seat
   loginStudentId.value = ''
   loginPin.value = ''
   loginError.value = ''
+  showKeyboard.value = false
   showLoginModal.value = true
-  nextTick(() => scanInput.value?.focus())
 }
 
 function closeLoginModal() {
   showLoginModal.value = false
   showPinPad.value = false
+  showKeyboard.value = false
   selectedSeat.value = null
   loginStudentId.value = ''
   loginPin.value = ''
+}
+
+function onOverlayTap() {
+  if (showKeyboard.value) { showKeyboard.value = false; return }
+  if (showPinPad.value) { showPinPad.value = false; return }
+  closeLoginModal()
 }
 
 function onScan() {
