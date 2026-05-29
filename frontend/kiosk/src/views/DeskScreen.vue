@@ -58,6 +58,11 @@
         <button class="logout" @click="doLogout">로그아웃</button>
       </div>
     </div>
+
+    <div v-if="loading" class="loading-overlay">
+      <div class="spinner"></div>
+      <p class="loading-text">{{ loadingMessage || '처리 중...' }}</p>
+    </div>
   </div>
 </template>
 
@@ -95,6 +100,9 @@ const qrCanvas = ref(null)
 const qrExpire = ref(null)
 const qrRemaining = ref(30)
 let qrTimer = null
+
+const loading = ref(false)
+const loadingMessage = ref('')
 
 function seatClass(seat) {
   if (seat.status === 'disabled') return 'disabled'
@@ -135,34 +143,40 @@ function onScan() {
 
 async function onLogin(pinValue) {
   loginError.value = ''
+  loading.value = true
+  loadingMessage.value = '로그인 중...'
   try {
     const { data } = await apiClient.post('/api/auth/login', { student_id: loginStudentId.value, pin: pinValue })
-    if (data.blacklist) { loginError.value = '이용이 제한되었습니다'; return }
+    if (data.blacklist) { loginError.value = '이용이 제한되었습니다'; loading.value = false; return }
     if (data.success) {
       authStore.setUser(data.user, data.token)
       showPinPad.value = false
-      // Auto check-in
+      showKeyboard.value = false
+      loadingMessage.value = '입실 처리 중...'
       await doCheckIn()
     }
   } catch (e) {
     loginError.value = e.response?.data?.detail || '로그인 실패'
     showPinPad.value = false; loginPin.value = ''
+  } finally {
+    loading.value = false
   }
 }
 
 async function doCheckIn() {
   const code = roomStore.roomCode
   if (!code) { loginError.value = '정독실 정보 오류'; return }
+  const seat = selectedSeat.value
   try {
     const { data } = await apiClient.post(`/api/room/${code}/check-in`, {
-      seat_id: Number(selectedSeat.value.id),
+      seat_id: Number(seat.id),
       user_id: authStore.user?.id,
       pass_type: 'daily',
     })
     if (data.success) {
+      roomStore.updateSeat(seat.id, 'occupied', authStore.user?.id, authStore.user?.name)
       showLoginModal.value = false
       showQRModal.value = true
-      // Generate QR
       nextTick(async () => {
         if (qrCanvas.value) {
           await QRCode.toCanvas(qrCanvas.value, data.qr_code, { width: 180, margin: 2 })
@@ -278,4 +292,9 @@ onUnmounted(() => {
 .menu button { padding: 14px 20px; background: none; border-radius: 0; font-size: 16px; text-align: left; border-bottom: 1px solid #eee; }
 .menu button:active { background: #f0f0f5; }
 .menu .logout { color: #e74c3c; margin-top: auto; border-top: 1px solid #eee; }
+
+.loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 300; }
+.spinner { width: 56px; height: 56px; border: 5px solid rgba(255,255,255,0.25); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+.loading-text { margin-top: 14px; color: #fff; font-size: 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
