@@ -4,46 +4,64 @@
       <button class="back-btn" @click="$router.back()">← 뒤로</button>
       <h2>WiFi 설정</h2>
     </div>
-    <div class="body">
-      <div class="ip-card">
-        <span class="ip-label">IP 주소</span>
-        <span class="ip-value">{{ ip || '확인 중...' }}</span>
-      </div>
-      <div class="current-status">
-        <span class="status-dot" :class="connected ? 'on' : 'off'"></span>
-        {{ connected ? `${currentSSID} 연결됨` : '연결 안됨' }}
-      </div>
-      <button class="scan-btn" @click="scanNetworks" :disabled="scanning">
-        {{ scanning ? '스캔 중...' : '네트워크 검색' }}
-      </button>
-      <div class="network-list">
-        <div v-for="net in networks" :key="net.ssid" class="network-item" @click="selectNetwork(net)">
-          <span class="net-name">{{ net.ssid }}</span>
-          <span class="net-signal">{{ net.signal }}%</span>
-          <span class="net-secure">{{ net.secure ? 'PW' : '' }}</span>
+
+    <PinKeypad v-if="!unlocked" title="관리자 PIN 입력"
+      v-model="adminPin" @confirm="onPinConfirm" @cancel="$router.push('/')" />
+
+    <template v-else>
+      <div class="body">
+        <div class="ip-card">
+          <span class="ip-label">IP 주소</span>
+          <span class="ip-value">{{ ip || '확인 중...' }}</span>
         </div>
-        <p v-if="!scanning && networks.length === 0" class="empty">검색된 네트워크가 없습니다</p>
-      </div>
-    </div>
-    <div v-if="showPassword" class="pwd-overlay">
-      <div class="pwd-box">
-        <h3>{{ selectedNetwork?.ssid }} 비밀번호</h3>
-        <input v-model="wifiPassword" type="text" placeholder="비밀번호 입력" />
-        <div class="pwd-btns">
-          <button class="cancel" @click="showPassword = false; wifiPassword = ''">취소</button>
-          <button class="ok" :disabled="!wifiPassword" @click="connectNetwork(wifiPassword)">연결</button>
+        <div class="current-status">
+          <span class="status-dot" :class="connected ? 'on' : 'off'"></span>
+          {{ connected ? `${currentSSID} 연결됨` : '연결 안됨' }}
+        </div>
+        <button class="scan-btn" @click="scanNetworks" :disabled="scanning">
+          {{ scanning ? '스캔 중...' : '네트워크 검색' }}
+        </button>
+        <div class="network-list">
+          <div v-for="net in networks" :key="net.ssid" class="network-item" @click="selectNetwork(net)">
+            <span class="net-name">{{ net.ssid }}</span>
+            <span class="net-signal">{{ net.signal }}%</span>
+            <span class="net-secure">{{ net.secure ? 'PW' : '' }}</span>
+          </div>
+          <p v-if="!scanning && networks.length === 0" class="empty">검색된 네트워크가 없습니다</p>
         </div>
       </div>
+      <div v-if="showPassword" class="pwd-overlay">
+        <div class="pwd-box">
+          <h3>{{ selectedNetwork?.ssid }} 비밀번호</h3>
+          <input v-model="wifiPassword" type="text" placeholder="비밀번호 입력" />
+          <div class="pwd-btns">
+            <button class="cancel" @click="showPassword = false; wifiPassword = ''">취소</button>
+            <button class="ok" :disabled="!wifiPassword" @click="connectNetwork(wifiPassword)">연결</button>
+          </div>
+        </div>
+      </div>
+      <VirtualKeyboard v-model="wifiPassword" :visible="showPassword" @close="showPassword = false" />
+      <div v-if="msg" class="toast">{{ msg }}</div>
+    </template>
+
+    <div v-if="pinError && !unlocked" class="pin-error-toast">{{ pinError }}</div>
+    <div v-if="verifying" class="loading-overlay">
+      <div class="spinner"></div>
+      <p class="loading-text">PIN 확인 중...</p>
     </div>
-    <VirtualKeyboard v-model="wifiPassword" :visible="showPassword" @close="showPassword = false" />
-    <div v-if="msg" class="toast">{{ msg }}</div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import apiClient from '@/services/api'
 import PinKeypad from '@/components/PinKeypad.vue'
 import VirtualKeyboard from '@/components/VirtualKeyboard.vue'
+
+const unlocked = ref(false)
+const adminPin = ref('')
+const pinError = ref('')
+const verifying = ref(false)
 
 const ip = ref('')
 const connected = ref(false)
@@ -54,6 +72,23 @@ const selectedNetwork = ref(null)
 const showPassword = ref(false)
 const wifiPassword = ref('')
 const msg = ref('')
+
+async function onPinConfirm(pinValue) {
+  pinError.value = ''
+  verifying.value = true
+  try {
+    await apiClient.post('/api/admin/verify-pin', { pin: pinValue })
+    unlocked.value = true
+    await getStatus()
+    await scanNetworks()
+  } catch (e) {
+    pinError.value = e.response?.data?.detail || 'PIN이 일치하지 않습니다'
+    adminPin.value = ''
+    setTimeout(() => { pinError.value = '' }, 2500)
+  } finally {
+    verifying.value = false
+  }
+}
 
 async function getStatus() {
   if (window.electron) {
@@ -95,8 +130,6 @@ async function connectNetwork(password) {
   } catch(e) { msg.value = 'WiFi 연결 실패' }
   setTimeout(() => msg.value = '', 2000)
 }
-
-onMounted(() => { getStatus(); scanNetworks() })
 </script>
 
 <style scoped>
@@ -130,4 +163,10 @@ onMounted(() => { getStatus(); scanNetworks() })
 .pwd-btns .cancel { background: #f0f0f5; color: #666; }
 .pwd-btns .ok { background: #4361ee; color: #fff; }
 .pwd-btns .ok:disabled { background: #ccc; }
+
+.pin-error-toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); background: #e74c3c; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 14px; z-index: 200; }
+.loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 300; }
+.spinner { width: 56px; height: 56px; border: 5px solid rgba(255,255,255,0.25); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+.loading-text { margin-top: 14px; color: #fff; font-size: 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
