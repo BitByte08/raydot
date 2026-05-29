@@ -9,6 +9,8 @@ from schemas import (
     StudentLoginRequest, StudentLoginResponse,
     PasswordInitialRequest, PasswordFindRequest,
     AdminSignUpRequest, AdminLoginRequest, AdminLoginResponse,
+    AdminPinVerifyRequest, AdminPinSetRequest,
+    AdminCreateByAdminRequest, AdminResponse,
     CardLinkRequest,
 )
 from utils.password import verify_pin, hash_pin, verify_admin_password, hash_admin_password
@@ -184,3 +186,90 @@ async def admin_login(body: AdminLoginRequest, db: AsyncSession = Depends(get_db
             "role": admin.role,
         },
     )
+
+
+@router.post("/admin/verify-pin")
+async def admin_verify_pin(body: AdminPinVerifyRequest, db: AsyncSession = Depends(get_db)):
+    """Public endpoint for the kiosk to gate admin-only screens behind any admin's 4-digit PIN."""
+    result = await db.execute(select(Admin).where(Admin.pin.is_not(None), Admin.verified.is_(True)))
+    for admin in result.scalars().all():
+        if verify_pin(body.pin, admin.pin):
+            return {"success": True, "admin": {"id": admin.id, "name": admin.name}}
+    raise HTTPException(status_code=401, detail="PIN이 일치하지 않습니다.")
+
+
+@router.post("/admin/pin")
+async def admin_set_pin(
+    body: AdminPinSetRequest,
+    db: AsyncSession = Depends(get_db),
+    current=Depends(get_current_admin),
+):
+    if len(body.pin) != 4 or not body.pin.isdigit():
+        raise HTTPException(status_code=400, detail="PIN은 숫자 4자리여야 합니다.")
+    result = await db.execute(select(Admin).where(Admin.id == current["admin_id"]))
+    admin = result.scalar_one_or_none()
+    if not admin:
+        raise HTTPException(status_code=404, detail="관리자를 찾을 수 없습니다.")
+    admin.pin = hash_pin(body.pin)
+    await db.commit()
+    return {"success": True}
+
+
+@router.get("/admin/admins", response_model=list[AdminResponse])
+async def admin_list(db: AsyncSession = Depends(get_db), current=Depends(get_current_admin)):
+    result = await db.execute(select(Admin).order_by(Admin.id))
+    return [
+        AdminResponse(
+            id=a.id, email=a.email, name=a.name, role=a.role,
+            verified=a.verified, has_pin=bool(a.pin),
+        )
+        for a in result.scalars().all()
+    ]
+
+
+@router.post("/admin/admins", response_model=AdminResponse)
+async def admin_create(
+    body: AdminCreateByAdminRequest,
+    db: AsyncSession = Depends(get_db),
+    current=Depends(get_current_admin),
+):
+    """Admin-issued admin creation: pre-verified (no email step), optional starting PIN."""
+    if not body.email.endswith(f"@{settings.SCHOOL_EMAIL_DOMAIN}"):
+        raise HTTPException(status_code=400, detail="학교 이메일만 사용 가능합니다.")
+    exists = await db.execute(select(Admin).where(Admin.email == body.email))
+    if exists.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="이미 등록된 이메일입니다.")
+    if body.pin is not None and (len(body.pin) != 4 or not body.pin.isdigit()):
+        raise HTTPException(status_code=400, detail="PIN은 숫자 4자리여야 합니다.")
+    admin = Admin(
+        email=body.email,
+        password_hash=hash_admin_password(body.password),
+        name=body.name or body.email.split("@")[0],
+        role=body.role,
+        verified=True,
+        pin=hash_pin(body.pin) if body.pin else None,
+    )
+    db.add(admin)
+    await db.commit()
+    await db.refresh(admin)
+    return AdminResponse(
+        id=admin.id, email=admin.email, name=admin.name, role=admin.role,
+        verified=admin.verified, has_pin=bool(admin.pin),
+    )
+
+
+@router.delete("/admin/admins/{admin_id}")
+async def admin_delete(
+    admin_id: int,
+    db: AsyncSession = Depends(get_db),
+    current=Depends(get_current_admin),
+):
+    if admin_id == current["admin_id"]:
+        raise HTTPException(status_code=400, detail="자기 자신은 삭제할 수 없습니다.")
+    result = await db.execute(select(Admin).where(Admin.id == admin_id))
+    admin = result.scalar_one_or_none()
+    if not admin:
+        raise HTTPException(status_code=404, detail="관리자를 찾을 수 없습니다.")
+    await db.delete(admin)
+    await db.commit()
+    return {"success": True}

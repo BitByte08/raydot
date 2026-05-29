@@ -48,6 +48,34 @@ class AdminLoginResponse(BaseModel):
     admin: dict
 
 
+class AdminPinVerifyRequest(BaseModel):
+    pin: str
+
+
+class AdminPinSetRequest(BaseModel):
+    pin: str
+
+
+class AdminCreateByAdminRequest(BaseModel):
+    email: str
+    password: str
+    name: Optional[str] = None
+    role: str = "staff"
+    pin: Optional[str] = None
+
+
+class AdminResponse(BaseModel):
+    id: int
+    email: str
+    name: Optional[str] = None
+    role: str
+    verified: bool
+    has_pin: bool
+
+    class Config:
+        from_attributes = True
+
+
 # --- User schemas ---
 
 class UserResponse(BaseModel):

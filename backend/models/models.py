@@ -35,6 +35,7 @@ class Admin(Base):
     role = Column(String(20), default="staff")  # staff, manager, superadmin
     verified = Column(Boolean, default=False)
     verification_code = Column(String(100), nullable=True)
+    pin = Column(String(255), nullable=True)  # bcrypt hashed 4-digit kiosk PIN
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     notices = relationship("BoardNotify", back_populates="author")

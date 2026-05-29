@@ -21,14 +21,14 @@ async def seed():
             print("Database already seeded, skipping.")
             return
 
-        # Seed admin user
-        from utils.password import hash_admin_password
+        from utils.password import hash_admin_password, hash_pin
         admin = Admin(
             email="admin@school.edu",
             password_hash=hash_admin_password("admin123"),
             name="관리자",
             role="superadmin",
             verified=True,
+            pin=hash_pin("0000"),
         )
         session.add(admin)
 
