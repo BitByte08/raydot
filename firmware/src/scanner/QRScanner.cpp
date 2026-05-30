@@ -19,8 +19,14 @@ bool QRScanner::scan() {
     if (!initialized) return false;
 
     // 시리얼 버퍼 읽기
+    int available = Serial2.available();
+    if (available > 0) {
+        Serial.printf("[QR] DEBUG: %d bytes waiting\n", available);
+    }
+
     while (Serial2.available()) {
         char c = Serial2.read();
+        Serial.printf("[QR] RAW byte: 0x%02X '%c'\n", (unsigned char)c, isPrintable(c) ? c : '.');
 
         if (c == '\n' || c == '\r') {
             if (buffer.length() > 0) {
