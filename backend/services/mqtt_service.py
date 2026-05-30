@@ -158,7 +158,7 @@ class MQTTService:
                     )
                     return
 
-                now = datetime.now(timezone.utc)
+                now = datetime.utcnow()
                 if qr.expires_at and qr.expires_at < now:
                     self.client.publish(
                         f"door/{room_code}/auth/response",
