@@ -20,7 +20,7 @@ from schemas.schemas import (
 from utils.auth import get_current_admin, get_current_user
 from utils.password import verify_pin
 from utils.qr_signer import generate_qr_code
-from utils.email import send_email
+from utils.email import send_email_with_image
 
 router = APIRouter(tags=["rooms"])
 
@@ -69,6 +69,9 @@ async def get_room_seats(room_code: str, db: AsyncSession = Depends(get_db)):
             "status": status,
             "user_id": user_id,
             "user_name": user_name,
+            "pos_x": seat.pos_x,
+            "pos_y": seat.pos_y,
+            "disabled": seat.disabled,
         })
 
     return {"seats": seat_list}
@@ -134,26 +137,25 @@ async def check_in(room_code: str, body: CheckInRequest, db: AsyncSession = Depe
     if user and user.email:
         import qrcode
         from io import BytesIO
-        import base64
 
-        # Generate QR code image as base64 for email
         qr_img = qrcode.make(qr_string)
         buf = BytesIO()
         qr_img.save(buf, "PNG")
-        qr_b64 = base64.b64encode(buf.getvalue()).decode()
 
-        send_email(
+        send_email_with_image(
             to=user.email,
             subject=f"[Raydot] 입장 QR 코드 - {seat.number}",
-            body=f"""
+            html_body=f"""
             <div style="text-align:center; padding:20px;">
                 <h2>정독실 입장 QR 코드</h2>
                 <p>{user.name}님, 입실이 완료되었습니다.</p>
                 <p>좌석: {seat.number} | 유효시간: 30분</p>
-                <img src="data:image/png;base64,{qr_b64}" style="width:200px;height:200px;" />
+                <img src="cid:qr_code" style="width:200px;height:200px;" />
                 <p style="color:#999; font-size:12px;">정독실 입장 시 이 QR을 스캔하세요</p>
             </div>
             """,
+            image_cid="qr_code",
+            image_bytes=buf.getvalue(),
         )
 
     return CheckInResponse(
@@ -274,37 +276,8 @@ async def admin_create_room(
             room_id=room.id,
             number=seat_data.get("number", ""),
             disabled=not seat_data.get("enabled", True),
-        )
-        db.add(seat)
-
-    await db.commit()
-    return {"success": True, "room_id": room.id}
-
-
-@router.put("/api/admin/room/{room_code}/seats")
-async def admin_update_seats(
-    room_code: str,
-    body: RoomSeatsUpdateRequest,
-    db: AsyncSession = Depends(get_db),
-    admin: dict = Depends(get_current_admin),
-):
-    """Admin: update seat layout for a room."""
-    result = await db.execute(select(Room).where(Room.code == room_code))
-    room = result.scalar_one_or_none()
-    if not room:
-        raise HTTPException(status_code=404, detail="정독실을 찾을 수 없습니다.")
-
-    # Delete existing seats and recreate
-    result = await db.execute(select(Seat).where(Seat.room_id == room.id))
-    existing = result.scalars().all()
-    for s in existing:
-        await db.delete(s)
-
-    for seat_data in body.seats:
-        seat = Seat(
-            room_id=room.id,
-            number=seat_data.get("number", ""),
-            disabled=not seat_data.get("enabled", True),
+            pos_x=seat_data.get("pos_x"),
+            pos_y=seat_data.get("pos_y"),
         )
         db.add(seat)
 
