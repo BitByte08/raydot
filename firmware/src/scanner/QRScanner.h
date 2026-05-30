@@ -15,6 +15,7 @@ public:
     const char* getCode() const { return lastCode; }
 
     void setMinInterval(unsigned long ms);
+    void tryBaud(unsigned long baud);
     void clear();
 
 private:

@@ -6,14 +6,15 @@ from config import settings
 
 
 def generate_qr_code(user_id: int, seat_id: int) -> str:
-    """Generate a signed QR code string: USER:{userId}:{seatId}:{timestamp}:{signature}"""
+    """Generate a signed QR code string: USER:{userId}:{seatId}:{timestamp}:{signature}
+    Signature is truncated to 8 hex chars to fit within scanner buffer limits."""
     timestamp = int(time.time())
     message = f"{user_id}:{seat_id}:{timestamp}"
     signature = hmac.new(
         settings.SECRET_KEY.encode("utf-8"),
         message.encode("utf-8"),
         hashlib.sha256,
-    ).hexdigest()
+    ).hexdigest()[:8]
     return f"USER:{user_id}:{seat_id}:{timestamp}:{signature}"
 
 
@@ -35,7 +36,7 @@ def verify_qr_signature(qr_code: str) -> dict:
             settings.SECRET_KEY.encode("utf-8"),
             message.encode("utf-8"),
             hashlib.sha256,
-        ).hexdigest()
+        ).hexdigest()[:8]
 
         if not hmac.compare_digest(signature, expected_sig):
             return {"valid": False, "error": "Invalid signature"}

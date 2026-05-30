@@ -9,40 +9,30 @@ QRScanner& QRScanner::getInstance() {
 QRScanner& qrScanner = QRScanner::getInstance();
 
 void QRScanner::begin() {
-    Serial2.begin(9600, SERIAL_8N1, QR_RX_PIN, QR_TX_PIN);
+    Serial2.begin(115200, SERIAL_8N1, QR_RX_PIN, QR_TX_PIN);
     buffer.reserve(128);
     initialized = true;
-    Serial.println("[QR] Scanner initialized");
+    Serial.println("[QR] Scanner initialized (115200)");
 }
 
 bool QRScanner::scan() {
     if (!initialized) return false;
 
-    // 시리얼 버퍼 읽기
-    int available = Serial2.available();
-    if (available > 0) {
-        Serial.printf("[QR] DEBUG: %d bytes waiting\n", available);
-    }
-
     while (Serial2.available()) {
         char c = Serial2.read();
-        Serial.printf("[QR] RAW byte: 0x%02X '%c'\n", (unsigned char)c, isPrintable(c) ? c : '.');
 
         if (c == '\n' || c == '\r') {
             if (buffer.length() > 0) {
-                // 속도 제한 체크
                 if (millis() - lastReadTime < minInterval) {
                     buffer = "";
                     continue;
                 }
 
-                // 디바운싱: 같은 코드 반복 무시
                 if (buffer == lastCode && millis() - lastReadTime < 500) {
                     buffer = "";
                     continue;
                 }
 
-                // 코드 파싱
                 buffer.trim();
                 strncpy(lastCode, buffer.c_str(), sizeof(lastCode) - 1);
                 lastCode[sizeof(lastCode) - 1] = '\0';
@@ -55,7 +45,6 @@ bool QRScanner::scan() {
             }
         } else if (isPrintable(c)) {
             buffer += c;
-            // 버퍼 오버플로우 방지
             if (buffer.length() >= 127) {
                 buffer = "";
             }
@@ -73,6 +62,10 @@ QRType QRScanner::parseType(const char* data) {
 
 void QRScanner::setMinInterval(unsigned long ms) {
     minInterval = ms;
+}
+
+void QRScanner::tryBaud(unsigned long baud) {
+    Serial2.begin(baud, SERIAL_8N1, QR_RX_PIN, QR_TX_PIN);
 }
 
 void QRScanner::clear() {
