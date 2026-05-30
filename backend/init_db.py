@@ -38,9 +38,11 @@ async def seed():
         await session.commit()
         await session.refresh(room)
 
-        # Seed seats
+        # Seed seats in a 5-column grid
         for i in range(1, 21):
-            seat = Seat(room_id=room.id, number=f"A{i:02d}")
+            row = (i - 1) // 5
+            col = (i - 1) % 5
+            seat = Seat(room_id=room.id, number=f"A{i:02d}", pos_x=col, pos_y=row)
             session.add(seat)
 
         # Seed test student
