@@ -185,11 +185,7 @@ class MQTTService:
                 logger.info(f"Auth response [{room_code}]: success for {user_name}")
 
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.ensure_future(verify_and_respond())
-            else:
-                loop.run_until_complete(verify_and_respond())
+            asyncio.run(verify_and_respond())
         except Exception as e:
             logger.error(f"Auth request handling failed: {e}")
             self.client.publish(
