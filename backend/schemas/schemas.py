@@ -111,6 +111,9 @@ class SeatResponse(BaseModel):
     status: str  # "empty", "occupied", "disabled"
     user_id: Optional[int] = None
     user_name: Optional[str] = None
+    pos_x: Optional[int] = None
+    pos_y: Optional[int] = None
+    disabled: bool = False
 
 
 class SeatsResponse(BaseModel):

@@ -23,6 +23,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 _ADDITIVE_MIGRATIONS = [
     ("admins", "pin", "VARCHAR(255)"),
+    ("seats", "pos_x", "INTEGER"),
+    ("seats", "pos_y", "INTEGER"),
 ]
 
 

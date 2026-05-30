@@ -64,6 +64,8 @@ class Seat(Base):
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
     number = Column(String(10), nullable=False)
     disabled = Column(Boolean, default=False)
+    pos_x = Column(Integer, nullable=True)
+    pos_y = Column(Integer, nullable=True)
 
     room = relationship("Room", back_populates="seats")
     seat_logs = relationship("SeatLog", back_populates="seat", cascade="all, delete-orphan")
