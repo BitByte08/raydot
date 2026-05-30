@@ -1,6 +1,7 @@
 #include "MQTTClient.h"
 #include "network/NetworkManager.h"
 #include "core/Queues.h"
+#include <ArduinoJson.h>
 
 MQTTClient& MQTTClient::getInstance() {
     static MQTTClient instance;
@@ -95,65 +96,37 @@ void MQTTClient::handleCallback(char* topic, byte* payload, unsigned int length)
 }
 
 void MQTTClient::handleAuthResponse(const char* payload, size_t len) {
-    String data(payload);
-
-    int successPos = data.indexOf("\"success\":");
-    if (successPos < 0) return;
-
-    bool success = data.substring(successPos + 10, successPos + 15).indexOf("true") >= 0;
-
-    if (success) {
-        int namePos = data.indexOf("\"user_name\":");
-        int durPos = data.indexOf("\"duration\":");
-
-        String userName = "Unknown";
-        int duration = 5;
-
-        if (namePos >= 0) {
-            int nameStart = data.indexOf("\"", namePos + 12) + 1;
-            int nameEnd = data.indexOf("\"", nameStart);
-            if (nameStart > 0 && nameEnd > nameStart) {
-                userName = data.substring(nameStart, nameEnd);
-            }
-        }
-
-        if (durPos >= 0) {
-            int durStart = durPos + 11;
-            int durEnd = data.indexOf("}", durStart);
-            if (durEnd < 0) durEnd = data.indexOf(",", durStart);
-            if (durEnd > durStart) {
-                duration = data.substring(durStart, durEnd).toInt();
-            }
-        }
-
-        if (duration <= 0) duration = 5;
-        Queues::toState(makeAuthSuccessEvent(userName.c_str(), (uint16_t)duration));
-    } else {
-        Queues::toState(makeAuthFailedEvent());
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, payload, len);
+    if (err) {
+        Serial.printf("[MQTT] JSON parse error: %s\n", err.c_str());
+        return;
     }
+
+    bool success = doc["success"] | false;
+    if (!success) {
+        Queues::toState(makeAuthFailedEvent());
+        return;
+    }
+
+    const char* name = doc["user_name"] | "Unknown";
+    int duration = doc["duration"] | 5;
+    if (duration <= 0) duration = 5;
+
+    Queues::toState(makeAuthSuccessEvent(name, (uint16_t)duration));
 }
 
 void MQTTClient::handleCommand(const char* payload, size_t len) {
-    String data(payload);
-    int cmdPos = data.indexOf("\"command\":");
-    if (cmdPos < 0) return;
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, payload, len);
+    if (err) return;
 
-    int start = data.indexOf("\"", cmdPos + 10) + 1;
-    int end = data.indexOf("\"", start);
-    if (start <= 0 || end <= start) return;
+    const char* cmd = doc["command"] | "";
+    if (cmd[0] == '\0') return;
 
-    String cmd = data.substring(start, end);
-
-    int param = 0;
-    int paramPos = data.indexOf("\"param\":");
-    if (paramPos >= 0) {
-        int pStart = paramPos + 8;
-        int pEnd = data.indexOf("}", pStart);
-        if (pEnd < 0) pEnd = data.indexOf(",", pStart);
-        if (pEnd > pStart) param = data.substring(pStart, pEnd).toInt();
-    }
-
-    Queues::toState(makeCommandEvent(cmd.c_str(), (int16_t)param));
+    int param = doc["param"] | 0;
+    Event e = makeCommandEvent(cmd, param);
+    Queues::toState(e);
 }
 
 void MQTTClient::publishStatus(LockState lockState) {
