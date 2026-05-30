@@ -9,7 +9,7 @@ QRScanner& QRScanner::getInstance() {
 QRScanner& qrScanner = QRScanner::getInstance();
 
 void QRScanner::begin() {
-    Serial2.begin(115200, SERIAL_8N1, QR_RX_PIN, QR_TX_PIN);
+    Serial2.begin(9600, SERIAL_8N1, QR_RX_PIN, QR_TX_PIN);
     buffer.reserve(128);
     initialized = true;
     Serial.println("[QR] Scanner initialized");
