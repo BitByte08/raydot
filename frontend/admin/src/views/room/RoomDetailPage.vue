@@ -91,8 +91,6 @@ async function load() {
     room.value = r.data
     seats.value = s.data.seats || s.data
     doorLogs.value = d.data
-    layout.cols = r.data.cols || 5
-    layout.rows = r.data.rows || 4
   } catch (e) { /* handled by router guards */ }
 }
 

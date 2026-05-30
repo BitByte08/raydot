@@ -236,6 +236,27 @@ async def move_seat(room_code: str, body: SeatMoveRequest, db: AsyncSession = De
 
 # --- Admin room/seat endpoints ---
 
+@router.get("/api/admin/room/{room_code}")
+async def admin_room_detail(
+    room_code: str,
+    db: AsyncSession = Depends(get_db),
+    admin: dict = Depends(get_current_admin),
+):
+    """Admin: get single room details."""
+    result = await db.execute(select(Room).where(Room.code == room_code))
+    room = result.scalar_one_or_none()
+    if not room:
+        raise HTTPException(status_code=404, detail="정독실을 찾을 수 없습니다.")
+    return {
+        "id": room.id,
+        "code": room.code,
+        "name": room.name,
+        "kiosk_id": room.kiosk_id,
+        "door_id": room.door_id,
+        "created_at": room.created_at.isoformat() if room.created_at else None,
+    }
+
+
 @router.get("/api/admin/rooms")
 async def admin_list_rooms(
     db: AsyncSession = Depends(get_db),
