@@ -100,7 +100,7 @@ void MQTTClient::handleAuthResponse(const char* payload, size_t len) {
     int successPos = data.indexOf("\"success\":");
     if (successPos < 0) return;
 
-    bool success = data.substring(successPos + 10, successPos + 14).indexOf("true") >= 0;
+    bool success = data.substring(successPos + 10, successPos + 15).indexOf("true") >= 0;
 
     if (success) {
         int namePos = data.indexOf("\"user_name\":");
