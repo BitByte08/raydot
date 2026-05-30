@@ -80,6 +80,40 @@ function toggleDoorQR() {
     })
   }
 }
+
+async function load() {
+  try {
+    const [r, s, d] = await Promise.all([
+      apiClient.get(`/api/admin/room/${code}`),
+      apiClient.get(`/api/room/${code}/seats`),
+      apiClient.get(`/api/admin/room/${code}/door/logs`),
+    ])
+    room.value = r.data
+    seats.value = s.data.seats || s.data
+    doorLogs.value = d.data
+    layout.cols = r.data.cols || 5
+    layout.rows = r.data.rows || 4
+  } catch (e) { /* handled by router guards */ }
+}
+
+async function regKiosk() {
+  if (!kioskId.value) return
+  await apiClient.post(`/api/admin/room/${code}/kiosk/register`, { kiosk_id: kioskId.value })
+  kioskId.value = ''
+  await load()
+}
+
+async function regDoor() {
+  if (!doorId.value) return
+  await apiClient.post(`/api/admin/room/${code}/door/register`, { door_id: doorId.value })
+  doorId.value = ''
+  await load()
+}
+
+async function doorCmd(cmd) {
+  await apiClient.post(`/api/room/${code}/door/command`, { command: cmd })
+  await load()
+}
 const layout = reactive({ cols: 5, rows: 4 })
 const saving = ref(false)
 const layoutMsg = ref('')
